@@ -1,0 +1,7 @@
+rework the event system.
+1. users can be put into groups and theses groups can be included to the events (also single users. one user can be put into more than one group but count gets only put into the event the first time).
+2. events days can be selected (with date) and it can be chosen if it is a one time event, is for x amount of days on that day or a regurlar event.
+3. holidays can be inported. so as a regurlar event will still say it is a free day
+4. pauses can be implemented (from to) and it will be accounted for in the data analyses
+
+Make sure it is userfriendly to use and that the database will be adjusted and that the creation of the database php code will also be adjusted for the new changes. make sure that the tables will be called correctly and that the css files and folder are used for the look and that every file is in hte folder it is suppoed to be. avoid duplicates and so on. make it like a senior developer with lot of expierience is coding it
