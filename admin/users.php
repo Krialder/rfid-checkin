@@ -618,7 +618,13 @@ try {
                     </div>
                     <div class="form-group">
                         <label for="rfid_tag">RFID Tag</label>
-                        <input type="text" id="rfid_tag" name="rfid_tag">
+                        <div class="rfid-input-group">
+                            <input type="text" id="rfid_tag" name="rfid_tag" placeholder="Enter RFID tag">
+                            <button type="button" class="btn-scan-rfid" 
+                                    data-rfid-scan data-rfid-target="rfid_tag">
+                                Scan RFID
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="password">Password *</label>
@@ -656,6 +662,7 @@ try {
     </div>
     
     <script src="../assets/js/dashboard.js"></script>
+    <script src="../assets/js/rfid-scanner.js"></script>
     <script>
         let currentPage = 1;
         let totalPages = 1;
@@ -1015,7 +1022,13 @@ try {
                                 </div>
                                 <div class="form-group">
                                     <label for="editRfidTag">RFID Tag</label>
-                                    <input type="text" id="editRfidTag" name="rfid_tag">
+                                    <div class="rfid-input-group">
+                                        <input type="text" id="editRfidTag" name="rfid_tag" placeholder="Enter RFID tag">
+                                        <button type="button" class="btn-scan-rfid" 
+                                                data-rfid-scan data-rfid-target="editRfidTag">
+                                            Scan RFID
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             

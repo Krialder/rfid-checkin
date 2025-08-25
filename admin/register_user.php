@@ -257,10 +257,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-group">
                             <label for="rfid_tag">RFID Tag</label>
-                            <input type="text" id="rfid_tag" name="rfid_tag" 
-                                   value="<?php echo htmlspecialchars($_GET['rfid_tag'] ?? ''); ?>"
-                                   pattern="[A-Za-z0-9]{6,20}" 
-                                   title="6-20 characters, letters and numbers only">
+                            <div class="rfid-input-group">
+                                <input type="text" id="rfid_tag" name="rfid_tag" 
+                                       value="<?php echo htmlspecialchars($_GET['rfid_tag'] ?? ''); ?>"
+                                       pattern="[A-Za-z0-9]{6,20}" 
+                                       title="6-20 characters, letters and numbers only"
+                                       placeholder="Enter RFID tag">
+                                <button type="button" class="btn-scan-rfid" 
+                                        data-rfid-scan data-rfid-target="rfid_tag">
+                                    Scan RFID
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -296,6 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php include '../includes/theme_script.php'; ?>
     
+    <script src="../assets/js/rfid-scanner.js"></script>
     <script>
         // Password confirmation validation
         document.getElementById('password2').addEventListener('input', function() {
