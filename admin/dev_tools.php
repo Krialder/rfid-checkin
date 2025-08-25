@@ -30,111 +30,7 @@ $db = getDB();
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        .main-content 
-        {
-            /* Use standard main-content wrapper */
-        }
-        
-        .dev-tools 
-        {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .table-section 
-        {
-            margin: 30px 0;
-            background: var(-- bg-secondary);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: var(-- shadow-md);
-        }
-        
-        .data-table 
-        {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-        
-        .data-table th,
-        .data-table td 
-        {
-            border: 1px solid var(-- border-color);
-            padding: 8px 12px;
-            text-align: left;
-        }
-        
-        .data-table th {
-            background: var(-- accent-color);
-            color: white;
-            font-weight: 600;
-        }
-        
-        .data-table tr:nth-child(even) {
-            background: var(-- bg-primary);
-        }
-        
-        .data-table tr:hover {
-            background: var(-- hover-color);
-        }
-        
-        .empty-table {
-            text-align: center;
-            padding: 40px;
-            color: var(-- text-secondary);
-            font-style: italic;
-        }
-        
-        .table-stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .stat-badge {
-            background: var(-- accent-color);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .refresh-btn {
-            float: right;
-            margin-bottom: 15px;
-        }
-        
-        .warning-banner {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .data-table {
-                font-size: 0.8rem;
-            }
-            
-            .data-table th,
-            .data-table td {
-                padding: 6px 8px;
-            }
-            
-            .table-stats {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../assets/css/admin-tools.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
@@ -214,7 +110,7 @@ $db = getDB();
                         echo "<p><em>Showing latest 100 of $count records</em></p>";
                     }
                     
-                    echo "<div style='overflow-x: auto;'>";
+                    echo "<div class='table-overflow'>";
                     echo "<table class='data-table'>";
                     echo "<thead><tr>";
                     
@@ -232,7 +128,7 @@ $db = getDB();
                             
                             // Format different data types
                             if (is_null($cell)) {
-                                $displayValue = '<em style="color: #999;">NULL</em>';
+                                $displayValue = '<em class="data-null">NULL</em>';
                             } elseif (is_numeric($cell) && strlen($cell) > 10) {
                                 // Truncate long numbers
                                 $displayValue = substr($cell, 0, 20) . '...';
@@ -258,7 +154,7 @@ $db = getDB();
             } catch (PDOException $e) {
                 echo "<div class='table-section'>";
                 echo "<h2>❌ Error loading $tableName</h2>";
-                echo "<p style='color: red;'>Database error: " . htmlspecialchars($e->getMessage()) . "</p>";
+                echo "<p class='error-message'>Database error: " . htmlspecialchars($e->getMessage()) . "</p>";
                 echo "</div>";
             }
         }
@@ -294,7 +190,7 @@ $db = getDB();
                 $schema_info = $stmt->fetchAll();
                 
                 if ($schema_info) {
-                    echo "<div style='overflow-x: auto;'>";
+                    echo "<div class='table-overflow'>";
                     echo "<table class='data-table'>";
                     echo "<thead><tr>";
                     echo "<th>Table Name</th><th>Rows</th><th>Data Size</th><th>Index Size</th><th>Created</th><th>Updated</th>";
@@ -314,7 +210,7 @@ $db = getDB();
                     echo "</div>";
                 }
             } catch (Exception $e) {
-                echo "<p style='color: red;'>Error loading schema info: " . htmlspecialchars($e->getMessage()) . "</p>";
+                echo "<p class='error-message'>Error loading schema info: " . htmlspecialchars($e->getMessage()) . "</p>";
             }
             ?>
         </div>

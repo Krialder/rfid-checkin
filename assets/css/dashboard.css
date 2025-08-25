@@ -40,12 +40,25 @@
     margin-top: 1rem;
 }
 
+/* Enhanced stats grid for multiple rows */
+.stats-grid + .stats-grid {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
 .stat-item {
     text-align: center;
     padding: 1rem;
     background: var(--bg-secondary);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-number {
@@ -54,6 +67,23 @@
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: 0.25rem;
+}
+
+/* Different colors for different stat types */
+.stat-item:nth-child(1) .stat-number {
+    color: #3b82f6; /* Blue for totals */
+}
+
+.stat-item:nth-child(2) .stat-number {
+    color: #10b981; /* Green for active/success */
+}
+
+.stat-item:nth-child(3) .stat-number {
+    color: #8b5cf6; /* Purple for users */
+}
+
+.stat-item:nth-child(4) .stat-number {
+    color: #f59e0b; /* Orange for rates/percentages */
 }
 
 .stat-label {
@@ -271,6 +301,7 @@
     
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
     }
     
     .dashboard-header h1 {
@@ -290,6 +321,18 @@
     
     .event-date {
         margin-top: 0.25rem;
+    }
+    
+    .stat-item {
+        padding: 0.75rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
     }
 }
 

@@ -16,6 +16,54 @@ if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
 }
 
 $user = Auth::getCurrentUser();
+$db = getDB();
+
+// Fetch real statistics
+try {
+    // Total check-ins
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM CheckIn");
+    $stmt->execute();
+    $total_checkins = $stmt->fetch()['total'];
+    
+    // Active events (current and upcoming)
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Events WHERE active = 1 AND end_time >= NOW()");
+    $stmt->execute();
+    $active_events = $stmt->fetch()['total'];
+    
+    // Registered users
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Users WHERE active = 1");
+    $stmt->execute();
+    $registered_users = $stmt->fetch()['total'];
+    
+    // Recent check-ins (last 24 hours)
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM CheckIn WHERE checkin_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    $stmt->execute();
+    $recent_checkins = $stmt->fetch()['total'];
+    
+    // Events this month
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Events WHERE active = 1 AND MONTH(start_time) = MONTH(CURRENT_DATE()) AND YEAR(start_time) = YEAR(CURRENT_DATE())");
+    $stmt->execute();
+    $events_this_month = $stmt->fetch()['total'];
+    
+    // Check-in success rate (assuming successful check-ins vs total attempts)
+    $stmt = $db->prepare("SELECT COUNT(*) as successful FROM CheckIn WHERE status = 'checked_in'");
+    $stmt->execute();
+    $successful_checkins = $stmt->fetch()['successful'];
+    
+    $checkin_success_rate = $total_checkins > 0 ? round(($successful_checkins / $total_checkins) * 100) : 0;
+    
+} catch (Exception $e) {
+    // Fallback values if database query fails
+    $total_checkins = 0;
+    $active_events = 0;
+    $registered_users = 0;
+    $recent_checkins = 0;
+    $events_this_month = 0;
+    $checkin_success_rate = 0;
+    
+    // Debug: Log the error (remove in production)
+    error_log("Database error in reports.php: " . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,6 +74,7 @@ $user = Auth::getCurrentUser();
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/admin-tools.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
@@ -34,6 +83,49 @@ $user = Auth::getCurrentUser();
         <div class="dashboard-header">
             <h1>📊 System Reports</h1>
             <p class="subtitle">Advanced analytics and reporting for system administrators</p>
+        </div>
+        
+        <!-- Quick Statistics - At the Top -->
+        <div class="card stats-card" style="margin-bottom: 2rem; grid-column: 1 / -1;">
+            <h3>📊 Quick Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo number_format($total_checkins); ?></span>
+                    <span class="stat-label">Total Check-ins</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo number_format($active_events); ?></span>
+                    <span class="stat-label">Active Events</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo number_format($registered_users); ?></span>
+                    <span class="stat-label">Registered Users</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo $checkin_success_rate; ?>%</span>
+                    <span class="stat-label">Success Rate</span>
+                </div>
+            </div>
+            
+            <!-- Additional Stats Row -->
+            <div class="stats-grid" style="margin-top: 1rem;">
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo number_format($recent_checkins); ?></span>
+                    <span class="stat-label">Recent Check-ins (24h)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo number_format($events_this_month); ?></span>
+                    <span class="stat-label">Events This Month</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo date('Y-m-d'); ?></span>
+                    <span class="stat-label">Current Date</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo date('H:i'); ?></span>
+                    <span class="stat-label">Current Time</span>
+                </div>
+            </div>
         </div>
         
         <div class="dashboard-grid">
@@ -63,29 +155,6 @@ $user = Auth::getCurrentUser();
                         <h4>⚡ System Performance</h4>
                         <p>Database performance, API usage, system health metrics</p>
                         <button class="btn btn-secondary">Generate Report</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Quick Stats -->
-            <div class="card stats-card">
-                <h3>📊 Quick Statistics</h3>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-number">150</span>
-                        <span class="stat-label">Total Check-ins</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">12</span>
-                        <span class="stat-label">Active Events</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">45</span>
-                        <span class="stat-label">Registered Users</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">98%</span>
-                        <span class="stat-label">System Uptime</span>
                     </div>
                 </div>
             </div>
@@ -137,6 +206,44 @@ $user = Auth::getCurrentUser();
     </div>
     
     <style>
+        /* Ensure statistics are visible */
+        .stats-card {
+            background: var(--bg-primary, #ffffff) !important;
+            border: 1px solid var(--border-color, #e2e8f0) !important;
+            border-radius: var(--radius-md, 0.5rem) !important;
+            padding: 1.5rem !important;
+            margin-bottom: 2rem !important;
+        }
+        
+        .stats-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+            gap: 1rem !important;
+            margin-top: 1rem !important;
+        }
+        
+        .stat-item {
+            text-align: center !important;
+            padding: 1rem !important;
+            background: var(--bg-secondary, #f8fafc) !important;
+            border-radius: var(--radius-md, 0.5rem) !important;
+            border: 1px solid var(--border-color, #e2e8f0) !important;
+        }
+        
+        .stat-number {
+            display: block !important;
+            font-size: 2rem !important;
+            font-weight: 700 !important;
+            color: var(--primary-color, #2563eb) !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem !important;
+            color: var(--text-secondary, #475569) !important;
+            font-weight: 500 !important;
+        }
+        
         .report-categories {
             display: grid;
             gap: 20px;

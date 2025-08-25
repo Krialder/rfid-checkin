@@ -204,6 +204,72 @@
     border-color: var(--border-color);
 }
 
+/* Additional Dynamic Styles */
+.has-error {
+    border-color: var(--error-color) !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+.has-success {
+    border-color: var(--success-color) !important;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1) !important;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+.password-toggle:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Dynamic Button States */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Form Validation Feedback */
+.validation-message {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.validation-message.error {
+    color: var(--error-color);
+}
+
+.validation-message.success {
+    color: var(--success-color);
+}
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
     .notification {
@@ -212,6 +278,14 @@
     }
     
     .notification-progress {
+        animation: none;
+    }
+    
+    .loading-spinner {
+        animation: none;
+    }
+    
+    .btn-loading::after {
         animation: none;
     }
 }

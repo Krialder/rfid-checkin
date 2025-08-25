@@ -389,30 +389,30 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                 
                 content.innerHTML = `
                     <h2>${escapeHtml(event.name)}</h2>
-                    <div style="margin-bottom: 1rem;">
+                    <div class="modal-section">
                         <span class="event-type">${escapeHtml(event.event_type || 'Event')}</span>
                     </div>
                     
-                    <div style="margin-bottom: 1rem;">
+                    <div class="modal-section">
                         <strong>📅 Date & Time:</strong><br>
                         ${formatDateTime(event.start_time)} - ${formatDateTime(event.end_time)}
                     </div>
                     
                     ${event.location ? `
-                        <div style="margin-bottom: 1rem;">
+                        <div class="modal-section">
                             <strong>📍 Location:</strong><br>
                             ${escapeHtml(event.location)}
                         </div>
                     ` : ''}
                     
                     ${event.description ? `
-                        <div style="margin-bottom: 1rem;">
+                        <div class="modal-section">
                             <strong>📝 Description:</strong><br>
                             ${escapeHtml(event.description).replace(/\n/g, '<br>')}
                         </div>
                     ` : ''}
                     
-                    <div style="margin-bottom: 1rem;">
+                    <div class="modal-section">
                         <strong>👥 Participants:</strong><br>
                         ${event.current_participants} ${event.max_participants > 0 ? '/ ' + event.max_participants : ''} participants
                     </div>

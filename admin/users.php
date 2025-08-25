@@ -890,7 +890,7 @@ try {
             .then(data => {
                 if (data.success) {
                     document.getElementById('importResults').innerHTML = `
-                        <div style="color: green;">
+                        <div class="success-message">
                             Successfully imported ${data.imported} users.
                             ${data.errors.length > 0 ? '<br>Errors: ' + data.errors.join('<br>') : ''}
                         </div>
@@ -898,14 +898,14 @@ try {
                     loadUsers();
                 } else {
                     document.getElementById('importResults').innerHTML = `
-                        <div style="color: red;">Error: ${data.error}</div>
+                        <div class="error-message">Error: ${data.error}</div>
                     `;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('importResults').innerHTML = `
-                    <div style="color: red;">Error importing users</div>
+                    <div class="error-message">Error importing users</div>
                 `;
             });
         });

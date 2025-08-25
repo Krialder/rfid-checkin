@@ -440,6 +440,23 @@
     }
 }
 
+/* Import result styles */
+.success-message {
+    color: var(--success-color);
+    background: var(--success-bg);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.error-message {
+    color: var(--error-color);
+    background: var(--error-bg);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
 /* Dark theme specific adjustments */
 [data-theme="dark"] .admin-header {
     background: linear-gradient(135deg, #4338ca 0%, #5b21b6 100%);

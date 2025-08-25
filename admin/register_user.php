@@ -262,12 +262,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                        value="<?php echo htmlspecialchars($_GET['rfid_tag'] ?? ''); ?>"
                                        pattern="[A-Za-z0-9]{6,20}" 
                                        title="6-20 characters, letters and numbers only"
-                                       placeholder="Enter RFID tag">
-                                <button type="button" class="btn-scan-rfid" 
-                                        data-rfid-scan data-rfid-target="rfid_tag">
-                                    Scan RFID
+                                       placeholder="Enter RFID tag or scan below">
+                                <button type="button" class="btn btn-primary btn-scan-rfid" 
+                                        data-rfid-scan data-rfid-target="rfid_tag"
+                                        title="Scan RFID tag using connected reader (Ctrl+R)">
+                                    📡 Scan RFID
                                 </button>
                             </div>
+                            <small class="form-help">You can manually enter the RFID tag or use the scan button if you have an RFID reader connected.</small>
                         </div>
                     </div>
                     

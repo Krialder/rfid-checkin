@@ -248,240 +248,16 @@ function getBrowserInfo($user_agent) {
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/forms.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        .settings-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .settings-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .settings-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(-- border-color);
-            overflow-x: auto;
-        }
-        
-        .tab-btn {
-            padding: 1rem 1.5rem;
-            border: none;
-            background: none;
-            color: var(-- text-secondary);
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-        
-        .tab-btn.active {
-            color: var(-- primary-color);
-            border-bottom-color: var(-- primary-color);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .section-card {
-            background: var(-- bg-secondary);
-            padding: 2rem;
-            border-radius: var(-- radius-md);
-            margin-bottom: 2rem;
-        }
-        
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .password-strength {
-            height: 4px;
-            background: var(-- bg-primary);
-            border-radius: 2px;
-            margin-top: 0.5rem;
-            overflow: hidden;
-        }
-        
-        .password-strength-bar {
-            height: 100%;
-            width: 0%;
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-        
-        .strength-weak {
-            background: var(-- error-color);
-            width: 25%;
-        }
-        
-        .strength-fair {
-            background: var(-- warning-color);
-            width: 50%;
-        }
-        
-        .strength-good {
-            background: var(-- info-color);
-            width: 75%;
-        }
-        
-        .strength-strong {
-            background: var(-- success-color);
-            width: 100%;
-        }
-        
-        .password-requirements {
-            font-size: 0.875rem;
-            color: var(-- text-secondary);
-            margin-top: 0.5rem;
-        }
-        
-        .requirement {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        .requirement.met {
-            color: var(-- success-color);
-        }
-        
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .checkbox-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        .checkbox-item input[type="checkbox"] {
-            margin: 0;
-            transform: scale(1.2);
-        }
-        
-        .checkbox-label {
-            flex: 1;
-        }
-        
-        .checkbox-description {
-            font-size: 0.875rem;
-            color: var(-- text-secondary);
-            margin-top: 0.25rem;
-        }
-        
-        .login-history {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .login-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem;
-            background: var(-- bg-primary);
-            border-radius: var(-- radius-sm);
-            border-left: 4px solid var(-- success-color);
-        }
-        
-        .login-item.failed {
-            border-left-color: var(-- error-color);
-        }
-        
-        .login-info {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-        
-        .login-time {
-            font-weight: 600;
-            color: var(-- text-primary);
-        }
-        
-        .login-details {
-            font-size: 0.875rem;
-            color: var(-- text-secondary);
-        }
-        
-        .login-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .status-success {
-            background: var(-- success-color);
-            color: white;
-        }
-        
-        .status-failed {
-            background: var(-- error-color);
-            color: white;
-        }
-        
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 0.5rem;
-        }
-        
-        .radio-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        .radio-item input[type="radio"] {
-            margin: 0;
-            transform: scale(1.2);
-        }
-        
-        .radio-label {
-            flex: 1;
-        }
-        
-        .radio-description {
-            font-size: 0.875rem;
-            color: var(-- text-secondary);
-            margin-top: 0.25rem;
-        }
-        
-        @media (max-width: 768px) {
-            .login-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../assets/css/account-settings.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
     
     <div class="main-content">
         <div class="settings-container">
+
+
+
             <div class="settings-header">
                 <h1>⚙️ Account Settings</h1>
                 <p class="subtitle">Manage your security, notifications, and privacy preferences</p>
@@ -567,12 +343,12 @@ function getBrowserInfo($user_agent) {
                     <h2 class="section-title">📱 Two-Factor Authentication</h2>
                     <p class="text-secondary">Add an extra layer of security to your account.</p>
                     
-                    <div style="padding: 1rem; background: var(-- bg-primary); border-radius: var(-- radius-sm); border-left: 4px solid var(-- info-color);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <span>ℹ️</span>
+                    <div class="feature-preview">
+                        <div class="feature-preview-header">
+                            <span class="feature-preview-icon">ℹ️</span>
                             <strong>Coming Soon</strong>
                         </div>
-                        <p style="margin: 0; color: var(-- text-secondary);">Two-factor authentication will be available in a future update.</p>
+                        <p class="feature-preview-text">Two-factor authentication will be available in a future update.</p>
                     </div>
                 </div>
             </div>
@@ -725,8 +501,8 @@ function getBrowserInfo($user_agent) {
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <div class="empty-state" style="text-align: center; padding: 3rem; color: var(-- text-secondary);">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <div class="stats-preview-empty">
+                            <div class="stats-preview-icon">📊</div>
                             <h3>No Login History</h3>
                             <p>Your login activity will appear here.</p>
                         </div>
@@ -737,7 +513,7 @@ function getBrowserInfo($user_agent) {
                     <h2 class="section-title">🔄 Data Export</h2>
                     <p class="text-secondary">Download a copy of your personal data.</p>
                     
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div class="export-options">
                         <button class="btn btn-secondary" onclick="exportData('profile')">
                             👤 Export Profile Data
                         </button>

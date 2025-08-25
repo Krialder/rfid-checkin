@@ -27,6 +27,7 @@ $user = Auth::getCurrentUser();
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/forms.css">
+    <link rel="stylesheet" href="../assets/css/admin-tools.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
@@ -41,10 +42,10 @@ $user = Auth::getCurrentUser();
             <!-- General Settings -->
             <div class="card">
                 <h3>🔧 General Settings</h3>
-                <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div class="info-box">
                     <h4>🚧 Coming Soon</h4>
                     <p>This section will include:</p>
-                    <ul style="margin: 15px 0; padding-left: 25px;">
+                    <ul>
                         <li>System name and branding configuration</li>
                         <li>Default timezone and localization settings</li>
                         <li>Session timeout and security policies</li>
@@ -57,10 +58,10 @@ $user = Auth::getCurrentUser();
             <!-- Security Settings -->
             <div class="card">
                 <h3>🔒 Security Settings</h3>
-                <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div class="info-box">
                     <h4>🚧 Advanced Security Coming Soon</h4>
                     <p>This section will include:</p>
-                    <ul style="margin: 15px 0; padding-left: 25px;">
+                    <ul>
                         <li>Password policy configuration</li>
                         <li>Two-factor authentication settings</li>
                         <li>Login attempt limits and lockout policies</li>
@@ -157,67 +158,6 @@ $user = Auth::getCurrentUser();
         </div>
     </div>
     
-    <style>
-        .config-display {
-            display: grid;
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .config-item {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 6px;
-            border-left: 4px solid #007cba;
-        }
-        
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .status-item.status-good {
-            background: #f0f8f0;
-            border-color: #28a745;
-        }
-        
-        .status-item.status-warning {
-            background: #fff8e1;
-            border-color: #ffc107;
-        }
-        
-        .status-icon {
-            font-size: 1.5rem;
-        }
-        
-        .status-item strong {
-            display: block;
-            margin-bottom: 2px;
-        }
-        
-        .status-item small {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-    </style>
     
     <?php include '../includes/theme_script.php'; ?>
 </body>

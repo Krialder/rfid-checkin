@@ -295,3 +295,13 @@
         gap: 1rem;
     }
 }
+
+/* Modal content styles */
+.modal-section {
+    margin-bottom: 1rem;
+}
+
+.modal-center {
+    margin-top: 2rem;
+    text-align: center;
+}
