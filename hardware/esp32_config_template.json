@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "version": "2.0",
+    "description": "ESP32 RFID Check-in System Configuration",
+    "created": "2025",
+    "author": "RFID-Scan System",
+    "note": "This template shows available configuration options. Use config.h for actual ESP32 setup."
+  },
+  
+  "esp32_config": {
+    "device": {
+      "id": "ESP32-001",
+      "name": "Main Entrance",
+      "location": "Building A - Lobby",
+      "type": "checkin"
+    },
+    "network": {
+      "ssid": "YOUR_WIFI_SSID",
+      "password": "YOUR_WIFI_PASSWORD",
+      "static_ip": {
+        "enabled": false,
+        "ip": "192.168.1.100",
+        "gateway": "192.168.1.1",
+        "subnet": "255.255.255.0",
+        "dns": "8.8.8.8"
+      }
+    },
+    "server": {
+      "url": "http://192.168.1.100/rfid-checkin/api/rfid_checkin.php",
+      "timeout": 10000,
+      "retry_attempts": 3
+    },
+    "hardware": {
+      "rfid": {
+        "sda_pin": 21,
+        "rst_pin": 22,
+        "read_timeout": 5000
+      },
+      "leds": {
+        "success_pin": 2,
+        "error_pin": 4,
+        "brightness": 255
+      }
+    },
+    "behavior": {
+      "scan_cooldown": 2000,
+      "debug_serial": true,
+      "enable_heartbeat": false
+    }
+  },
+  
+  "pin_layouts": {
+    "esp32_devkit": {
+      "description": "ESP32 DevKit v1 (recommended)",
+      "pins": {
+        "rfid_sda": "GPIO21",
+        "rfid_sck": "GPIO18", 
+        "rfid_mosi": "GPIO23",
+        "rfid_miso": "GPIO19",
+        "rfid_rst": "GPIO22",
+        "led_success": "GPIO2",
+        "led_error": "GPIO4"
+      }
+    }
+  },
+  
+  "example_devices": {
+    "entrance_reader": {
+      "device": {
+        "id": "ESP32-ENTRANCE",
+        "name": "Main Entrance",
+        "location": "Building Entrance"
+      }
+    },
+    "meeting_room": {
+      "device": {
+        "id": "ESP32-MEETING-01", 
+        "name": "Conference Room A",
+        "location": "2nd Floor - Room 201"
+      }
+    }
+  }
+}

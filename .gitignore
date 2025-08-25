@@ -1,0 +1,121 @@
+# =================================
+# RFID Check-in System .gitignore
+# =================================
+
+# Configuration files with sensitive data
+core/config.php
+hardware/config.h
+hardware/config.json
+
+# Database files with sensitive information
+database/create_admin.sql
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+config.ini
+
+# Log files
+*.log
+logs/
+error.log
+access.log
+php_errors.log
+
+# Temporary files
+tmp/
+temp/
+cache/
+*.tmp
+*.temp
+
+# User uploads and data
+uploads/
+user_data/
+backups/
+exports/
+
+# IDE and editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages and dependencies
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+
+# Hardware specific files
+hardware/*.local.json
+hardware/*_production.json
+hardware/*_private.ino
+
+# Testing and development
+test_data/
+debug/
+phpunit.xml
+.phpunit.result.cache
+
+# SSL Certificates and Keys
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+ssl/
+
+# Session files
+sessions/
+*.sess
+
+# Custom local configurations
+*local.php
+*private.php
+*secret.php
+local_config.json
+private_config.json
+
+# Database dumps and sensitive SQL files
+*.sql.bak
+database_dump.sql
+production_data.sql
+sensitive_data.sql
+
+# Documentation with sensitive info
+DEPLOYMENT_NOTES.md
+PRIVATE_SETUP.md
+PASSWORDS.txt
+CREDENTIALS.md
+
+# Git setup files (no longer needed)
+git-setup-commands.txt
