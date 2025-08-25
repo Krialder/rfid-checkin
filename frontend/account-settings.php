@@ -143,12 +143,12 @@ function changePassword($db, $user_id, $data) {
         
         // Update password
         $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
-        $stmt = $db->prepare("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE Users SET password = ?, updated_at = NOW() WHERE user_id = ?");
         $stmt->execute([$new_hash, $user_id]);
         
         // Log password change
         $stmt = $db->prepare("
-            INSERT INTO activity_log (user_id, action, details, timestamp) 
+            INSERT INTO ActivityLog (user_id, action, details, timestamp) 
             VALUES (?, 'password_change', 'Password changed successfully', NOW())
         ");
         $stmt->execute([$user_id]);

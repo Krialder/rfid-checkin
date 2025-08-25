@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->beginTransaction();
         
         // Check if email or username already exists
-        $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? OR username = ?");
+        $stmt = $db->prepare("SELECT user_id FROM Users WHERE email = ? OR username = ?");
         $stmt->execute([$email, $username]);
         if ($stmt->fetch()) {
             throw new Exception('Email address or username is already registered');
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Check if RFID tag already exists (if provided)
         if (!empty($rfid_tag)) {
-            $stmt = $db->prepare("SELECT user_id FROM users WHERE rfid_tag = ?");
+            $stmt = $db->prepare("SELECT user_id FROM Users WHERE rfid_tag = ?");
             $stmt->execute([$rfid_tag]);
             if ($stmt->fetch()) {
                 throw new Exception('RFID tag is already assigned to another user');
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         
         $stmt = $db->prepare("
-            INSERT INTO users (username, first_name, last_name, email, phone, password, rfid_tag, role, department, is_active, created_at) 
+            INSERT INTO Users (username, first_name, last_name, email, phone, password, rfid_tag, role, department, is_active, created_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
         ");
         
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Log the registration activity
         $stmt = $db->prepare("
-            INSERT INTO activitylog (user_id, action, details, ip_address, timestamp) 
+            INSERT INTO ActivityLog (user_id, action, details, ip_address, timestamp) 
             VALUES (?, 'user_registration', ?, ?, NOW())
         ");
         $stmt->execute([

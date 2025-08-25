@@ -83,8 +83,8 @@ function getKeyStats($db, $user_condition, $date_condition, $params) {
             SELECT COUNT(*) as total,
                    COUNT(DISTINCT e.event_id) as events,
                    AVG(TIMESTAMPDIFF(MINUTE, c.checkin_time, COALESCE(c.checkout_time, NOW()))) as avg_duration
-            FROM checkins c
-            LEFT JOIN events e ON c.event_id = e.event_id
+            FROM CheckIn c
+            LEFT JOIN Events e ON c.event_id = e.event_id
             WHERE 1=1 $user_condition $date_condition
         ");
         $stmt->execute($params);
@@ -98,8 +98,8 @@ function getKeyStats($db, $user_condition, $date_condition, $params) {
                 SELECT 
                     COUNT(DISTINCT c.event_id) as attended,
                     COUNT(DISTINCT e.event_id) as total_events
-                FROM events e
-                LEFT JOIN checkins c ON e.event_id = c.event_id AND c.user_id = ?
+                FROM Events e
+                LEFT JOIN CheckIn c ON e.event_id = c.event_id AND c.user_id = ?
                 WHERE e.start_time <= NOW() $date_condition
             ");
             $rate_params = array_merge([$user_id], array_slice($params, 1));
@@ -142,7 +142,7 @@ function getTimelineData($db, $user_condition, $date_condition, $params, $date_r
                 $group_by as period,
                 DATE_FORMAT(c.checkin_time, '$date_format') as label,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY $group_by
             ORDER BY period
@@ -167,7 +167,7 @@ function getPeakHours($db, $user_condition, $date_condition, $params) {
             SELECT 
                 HOUR(c.checkin_time) as hour,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY HOUR(c.checkin_time)
             ORDER BY hour
@@ -211,7 +211,7 @@ function getDaysOfWeek($db, $user_condition, $date_condition, $params) {
                 DAYNAME(c.checkin_time) as day_name,
                 DAYOFWEEK(c.checkin_time) as day_num,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY DAYOFWEEK(c.checkin_time), DAYNAME(c.checkin_time)
             ORDER BY day_num
@@ -236,8 +236,8 @@ function getEventTypes($db, $user_condition, $date_condition, $params) {
             SELECT 
                 COALESCE(e.event_type, 'General') as type,
                 COUNT(*) as count
-            FROM checkins c
-            LEFT JOIN events e ON c.event_id = e.event_id
+            FROM CheckIn c
+            LEFT JOIN Events e ON c.event_id = e.event_id
             WHERE 1=1 $user_condition $date_condition
             GROUP BY COALESCE(e.event_type, 'General')
             ORDER BY count DESC
@@ -262,8 +262,8 @@ function getTopLocations($db, $user_condition, $date_condition, $params) {
             SELECT 
                 COALESCE(e.location, 'Unknown') as location,
                 COUNT(*) as count
-            FROM checkins c
-            LEFT JOIN events e ON c.event_id = e.event_id
+            FROM CheckIn c
+            LEFT JOIN Events e ON c.event_id = e.event_id
             WHERE 1=1 $user_condition $date_condition
             GROUP BY COALESCE(e.location, 'Unknown')
             ORDER BY count DESC
@@ -292,7 +292,7 @@ function getCheckinMethods($db, $user_condition, $date_condition, $params) {
                     ELSE 'Manual'
                 END as method,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY method
         ");
@@ -319,7 +319,7 @@ function generateInsights($db, $user_condition, $date_condition, $params, $view_
             SELECT 
                 DAYNAME(c.checkin_time) as day_name,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY DAYOFWEEK(c.checkin_time), DAYNAME(c.checkin_time)
             ORDER BY count DESC
@@ -341,7 +341,7 @@ function generateInsights($db, $user_condition, $date_condition, $params, $view_
             SELECT 
                 HOUR(c.checkin_time) as hour,
                 COUNT(*) as count
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             GROUP BY HOUR(c.checkin_time)
             ORDER BY count DESC
@@ -366,8 +366,8 @@ function generateInsights($db, $user_condition, $date_condition, $params, $view_
             SELECT 
                 COALESCE(e.event_type, 'General') as type,
                 COUNT(*) as count
-            FROM checkins c
-            LEFT JOIN events e ON c.event_id = e.event_id
+            FROM CheckIn c
+            LEFT JOIN Events e ON c.event_id = e.event_id
             WHERE 1=1 $user_condition $date_condition
             GROUP BY COALESCE(e.event_type, 'General')
             ORDER BY count DESC
@@ -388,7 +388,7 @@ function generateInsights($db, $user_condition, $date_condition, $params, $view_
         $stmt = $db->prepare("
             SELECT 
                 COUNT(*) / COUNT(DISTINCT DATE(c.checkin_time)) as avg_per_day
-            FROM checkins c
+            FROM CheckIn c
             WHERE 1=1 $user_condition $date_condition
             HAVING COUNT(DISTINCT DATE(c.checkin_time)) > 0
         ");
@@ -419,7 +419,7 @@ function generateInsights($db, $user_condition, $date_condition, $params, $view_
         if ($view_mode === 'system') {
             $stmt = $db->prepare("
                 SELECT COUNT(DISTINCT c.user_id) as active_users
-                FROM checkins c
+                FROM CheckIn c
                 WHERE 1=1 $date_condition
             ");
             $stmt->execute($date_params);
@@ -445,7 +445,7 @@ function calculateCheckInStreak($db, $user_id) {
     try {
         $stmt = $db->prepare("
             SELECT DATE(checkin_time) as checkin_date
-            FROM checkins
+            FROM CheckIn
             WHERE user_id = ?
             GROUP BY DATE(checkin_time)
             ORDER BY checkin_date DESC

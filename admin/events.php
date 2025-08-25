@@ -314,7 +314,7 @@ try {
 // Get all users for attendee selection
 $users = [];
 try {
-    $stmt = $db->prepare("SELECT user_id, username, first_name, last_name, email FROM users WHERE is_active = 1 ORDER BY first_name, last_name");
+    $stmt = $db->prepare("SELECT user_id, username, first_name, last_name, email FROM Users WHERE is_active = 1 ORDER BY first_name, last_name");
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

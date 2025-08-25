@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $whereClause = implode(' AND ', $where);
                 
                 // Get total count
-                $stmt = $db->prepare("SELECT COUNT(*) FROM users u WHERE $whereClause");
+                $stmt = $db->prepare("SELECT COUNT(*) FROM Users u WHERE $whereClause");
                 $stmt->execute($params);
                 $total = $stmt->fetchColumn();
                 
@@ -61,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     SELECT u.*, 
                            COUNT(DISTINCT c.checkin_id) as total_checkins,
                            MAX(c.checkin_time) as last_checkin
-                    FROM users u 
-                    LEFT JOIN checkin c ON u.user_id = c.user_id 
+                    FROM Users u 
+                    LEFT JOIN CheckIn c ON u.user_id = c.user_id 
                     WHERE $whereClause 
                     GROUP BY u.user_id 
                     ORDER BY u.created_at DESC 
@@ -109,14 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Check for duplicates
-                $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
+                $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE username = ? OR email = ?");
                 $stmt->execute([$userData['username'], $userData['email']]);
                 if ($stmt->fetchColumn() > 0) {
                     throw new Exception('Username or email already exists');
                 }
                 
                 if ($userData['rfid_tag']) {
-                    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE rfid_tag = ?");
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE rfid_tag = ?");
                     $stmt->execute([$userData['rfid_tag']]);
                     if ($stmt->fetchColumn() > 0) {
                         throw new Exception('RFID tag already assigned to another user');
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Create user
                 $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
                 $stmt = $db->prepare("
-                    INSERT INTO users (username, email, password, first_name, last_name, role, department, rfid_tag, is_active, created_at) 
+                    INSERT INTO Users (username, email, password, first_name, last_name, role, department, rfid_tag, is_active, created_at) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
                 ");
                 $stmt->execute([
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Log activity
                 $stmt = $db->prepare("
-                    INSERT INTO activitylog (user_id, action, details, ip_address) 
+                    INSERT INTO ActivityLog (user_id, action, details, ip_address) 
                     VALUES (?, 'user_created', 'User created by admin', ?)
                 ");
                 $stmt->execute([
@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 if (in_array($field, ['username', 'email', 'rfid_tag']) && $value) {
-                    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE $field = ? AND user_id != ?");
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE $field = ? AND user_id != ?");
                     $stmt->execute([$value, $userId]);
                     if ($stmt->fetchColumn() > 0) {
                         throw new Exception(ucfirst($field) . ' already exists');
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Update user
-                $stmt = $db->prepare("UPDATE users SET $field = ? WHERE user_id = ?");
+                $stmt = $db->prepare("UPDATE Users SET $field = ? WHERE user_id = ?");
                 $stmt->execute([$value ?: null, $userId]);
                 
                 echo json_encode(['success' => true]);
@@ -199,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("
                     SELECT user_id, username, first_name, last_name, email, phone, role, 
                            department, rfid_tag, is_active, created_at, updated_at
-                    FROM users 
+                    FROM Users 
                     WHERE user_id = ?
                 ");
                 $stmt->execute([$userId]);
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         // Check uniqueness for certain fields
                         if (in_array($field, ['username', 'email', 'rfid_tag']) && !empty($value)) {
-                            $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE $field = ? AND user_id != ?");
+                            $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE $field = ? AND user_id != ?");
                             $stmt->execute([$value, $userId]);
                             if ($stmt->fetchColumn() > 0) {
                                 throw new Exception(ucfirst($field) . ' already exists');
@@ -258,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $updateValues[] = $userId;
                 
                 // Update user
-                $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE user_id = ?";
+                $sql = "UPDATE Users SET " . implode(', ', $updateFields) . " WHERE user_id = ?";
                 $stmt = $db->prepare($sql);
                 $stmt->execute($updateValues);
                 
@@ -288,16 +288,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Delete related records first to maintain referential integrity
                     // Note: Using correct lowercase table names from database
                     
-                    // Delete from checkin table
-                    $stmt = $db->prepare("DELETE FROM checkin WHERE user_id = ?");
+                    // Delete from CheckIn table
+                    $stmt = $db->prepare("DELETE FROM CheckIn WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
-                    // Delete from eventregistration table
-                    $stmt = $db->prepare("DELETE FROM eventregistration WHERE user_id = ?");
+                    // Delete from EventRegistration table
+                    $stmt = $db->prepare("DELETE FROM EventRegistration WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
-                    // Delete from activitylog table
-                    $stmt = $db->prepare("DELETE FROM activitylog WHERE user_id = ?");
+                    // Delete from ActivityLog table
+                    $stmt = $db->prepare("DELETE FROM ActivityLog WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
                     // Delete from password_resets table
@@ -308,12 +308,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $db->prepare("DELETE FROM user_settings WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
-                    // Delete from accesslogs table
-                    $stmt = $db->prepare("DELETE FROM accesslogs WHERE user_id = ?");
+                    // Delete from AccessLogs table
+                    $stmt = $db->prepare("DELETE FROM AccessLogs WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
                     // Finally delete the user
-                    $stmt = $db->prepare("DELETE FROM users WHERE user_id = ?");
+                    $stmt = $db->prepare("DELETE FROM Users WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
                     // Check if user was actually deleted
@@ -343,12 +343,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmt = $db->prepare("UPDATE users SET password = ? WHERE user_id = ?");
+                $stmt = $db->prepare("UPDATE Users SET password = ? WHERE user_id = ?");
                 $stmt->execute([$hashedPassword, $userId]);
                 
                 // Log activity
                 $stmt = $db->prepare("
-                    INSERT INTO activitylog (user_id, action, details, ip_address) 
+                    INSERT INTO ActivityLog (user_id, action, details, ip_address) 
                     VALUES (?, 'password_reset_admin', 'Password reset by admin', ?)
                 ");
                 $stmt->execute([
@@ -398,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         
                         // Check for duplicates
-                        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
+                        $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE username = ? OR email = ?");
                         $stmt->execute([$userData['username'], $userData['email']]);
                         if ($stmt->fetchColumn() > 0) {
                             continue;
@@ -407,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Create user
                         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
                         $stmt = $db->prepare("
-                            INSERT INTO users (username, email, password, first_name, last_name, role, department, rfid_tag, is_active, created_at) 
+                            INSERT INTO Users (username, email, password, first_name, last_name, role, department, rfid_tag, is_active, created_at) 
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
                         ");
                         $stmt->execute([
@@ -452,23 +452,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stats = [];
 try {
     // Total users
-    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE is_active = 1");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE is_active = 1");
     $stmt->execute();
     $stats['total_users'] = $stmt->fetchColumn();
     
     // New users this month
-    $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE is_active = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE is_active = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)");
     $stmt->execute();
     $stats['new_users_month'] = $stmt->fetchColumn();
     
     // Users by role
-    $stmt = $db->prepare("SELECT role, COUNT(*) as count FROM users WHERE is_active = 1 GROUP BY role");
+    $stmt = $db->prepare("SELECT role, COUNT(*) as count FROM Users WHERE is_active = 1 GROUP BY role");
     $stmt->execute();
     $stats['users_by_role'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     
     // Recent activity
     $stmt = $db->prepare("
-        SELECT COUNT(*) FROM activitylog 
+        SELECT COUNT(*) FROM ActivityLog 
         WHERE action IN ('login', 'checkin', 'checkout') 
         AND timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
     ");
