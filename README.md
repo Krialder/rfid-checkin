@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Enterprise-Grade Electronic Check-in & Attendance Management System**
+**Electronic Check-in & Attendance Management System**
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](#)
@@ -11,7 +11,7 @@
 [![Database](https://img.shields.io/badge/database-MySQL%208.0%2B-orange.svg)](#requirements)
 [![Security](https://img.shields.io/badge/security-enterprise--grade-red.svg)](#security--compliance)
 
-*Professional attendance tracking solution with RFID hardware integration, real-time analytics, and comprehensive user management for organizations of all sizes.*
+*Attendance tracking solution with RFID hardware integration, real-time analytics, and comprehensive user management for organizations of all sizes.*
 
 [🚀 Quick Start](#quick-installation) • [📖 Documentation](#documentation) • [🔧 API Reference](#api-documentation) • [🛠️ Hardware Setup](#hardware-integration) • [🔒 Security](#security--compliance)
 
@@ -21,9 +21,9 @@
 
 ## 🎯 System Overview
 
-This enterprise-grade RFID check-in system provides a complete attendance management solution combining modern web technologies with IoT hardware integration. Built with security-first principles and scalable architecture, it serves organizations from small teams to enterprise deployments with 10,000+ users.
+This RFID check-in system provides a complete attendance management solution combining modern web technologies with IoT hardware integration. Built with security-first principles and scalable architecture, it serves organizations from small teams to enterprise deployments with 10,000+ users.
 
-### 🌟 **Production Status: Ready for Enterprise Deployment** ✅
+### 🌟 **Production Status: Ready for Deployment** ✅
 
 - **Architecture**: Modern PHP 8.0+ with enterprise security patterns
 - **Database**: Optimized MySQL 8.0+ with comprehensive indexing
@@ -38,7 +38,7 @@ This enterprise-grade RFID check-in system provides a complete attendance manage
 <tr>
 <td width="50%" valign="top">
 
-### 🔐 **Enterprise Security**
+### 🔐 **Security**
 - **Multi-Role Authentication** (Admin, Manager, User, Guest)
 - **BCrypt Password Hashing** with configurable strength
 - **Session Security** with hijacking protection & timeout
