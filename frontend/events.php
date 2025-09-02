@@ -1,7 +1,7 @@
 <?php
 /**
  * Events Page
- * Public events listing with search, filtering, and registration
+ * Public events listing with search, filtering, and quick check-in
  */
 
 require_once '../core/auth.php';
@@ -26,19 +26,19 @@ $params = [];
 // View filtering
 switch ($view_filter) {
     case 'upcoming':
-        $where_conditions[] = 'e.start_time > NOW()';
-        $order_by = 'e.start_time ASC';
+        $where_conditions[] = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) > NOW()';
+        $order_by = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) ASC';
         break;
     case 'current':
-        $where_conditions[] = 'e.start_time <= NOW() AND e.end_time >= NOW()';
-        $order_by = 'e.start_time ASC';
+        $where_conditions[] = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) <= NOW() AND TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, "23:59:59")) >= NOW()';
+        $order_by = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) ASC';
         break;
     case 'past':
-        $where_conditions[] = 'e.end_time < NOW()';
-        $order_by = 'e.start_time DESC';
+        $where_conditions[] = 'TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, "23:59:59")) < NOW()';
+        $order_by = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) DESC';
         break;
     default:
-        $order_by = 'e.start_time ASC';
+        $order_by = 'TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, "00:00:00")) ASC';
 }
 
 // Category filtering
@@ -61,7 +61,7 @@ $where_clause = implode(' AND ', $where_conditions);
 // Get total count for pagination
 $count_sql = "
     SELECT COUNT(*) as total 
-    FROM Events e
+    FROM events e
     WHERE $where_clause
 ";
 $stmt = $db->prepare($count_sql);
@@ -74,16 +74,21 @@ $sql = "
     SELECT 
         e.*,
         CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
+        (SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'checked_in') as current_participants,
         CASE 
             WHEN c.checkin_id IS NOT NULL THEN c.status
             ELSE NULL
         END as user_checkin_status,
         c.checkin_time as user_checkin_time,
-        (e.current_participants / NULLIF(e.capacity, 0) * 100) as capacity_percentage
-    FROM Events e
-    LEFT JOIN Users u ON e.created_by = u.user_id
-    LEFT JOIN CheckIn c ON e.event_id = c.event_id AND c.user_id = ? 
-        AND DATE(c.checkin_time) = DATE(e.start_time)
+        (CASE 
+            WHEN e.capacity > 0 THEN 
+                ((SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'checked_in') / e.capacity * 100)
+            ELSE 0
+        END) as capacity_percentage
+    FROM events e
+    LEFT JOIN users u ON e.created_by = u.user_id
+    LEFT JOIN checkin c ON e.event_id = c.event_id AND c.user_id = ? 
+        AND DATE(c.checkin_time) = e.start_date
     WHERE $where_clause
     ORDER BY $order_by
     LIMIT $per_page OFFSET $offset
@@ -95,10 +100,25 @@ $stmt->execute($all_params);
 $events = $stmt->fetchAll();
 
 // Get event categories for filter dropdown
-$cat_sql = "SELECT DISTINCT event_type FROM Events WHERE active = 1 AND event_type IS NOT NULL ORDER BY event_type";
+$cat_sql = "SELECT DISTINCT event_type FROM events WHERE active = 1 AND event_type IS NOT NULL ORDER BY event_type";
 $stmt = $db->prepare($cat_sql);
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Get event statistics for the current user
+$stats_sql = "
+    SELECT 
+        COUNT(DISTINCT e.event_id) as total_events,
+        COUNT(DISTINCT CASE WHEN TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) > NOW() THEN e.event_id END) as upcoming_events,
+        COUNT(DISTINCT CASE WHEN TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) <= NOW() AND TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, '23:59:59')) >= NOW() THEN e.event_id END) as current_events,
+        COUNT(DISTINCT c.event_id) as attended_events
+    FROM events e
+    LEFT JOIN checkin c ON e.event_id = c.event_id AND c.user_id = ? AND c.status = 'checked_in'
+    WHERE e.active = 1
+";
+$stmt = $db->prepare($stats_sql);
+$stmt->execute([$user['user_id']]);
+$event_stats = $stmt->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -110,16 +130,35 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/forms.css">
+    <link rel="stylesheet" href="../assets/css/my-checkins.css">
     <link rel="stylesheet" href="../assets/css/events.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
     
     <div class="main-content">
-        <div class="events-header">
-            <div>
-                <h1>📅 Events</h1>
-                <p class="subtitle">Discover and join upcoming events</p>
+        <div class="page-header">
+            <h1>📅 Events</h1>
+            <p class="subtitle">Discover and join upcoming events</p>
+        </div>
+        
+        <!-- Events Statistics Overview -->
+        <div class="stats-overview">
+            <div class="stat-item">
+                <div class="stat-number"><?php echo $event_stats['total_events'] ?: 0; ?></div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number"><?php echo $event_stats['upcoming_events'] ?: 0; ?></div>
+                <div class="stat-label">Upcoming Events</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number"><?php echo $event_stats['current_events'] ?: 0; ?></div>
+                <div class="stat-label">Active Now</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number"><?php echo $event_stats['attended_events'] ?: 0; ?></div>
+                <div class="stat-label">Events Attended</div>
             </div>
         </div>
         
@@ -177,7 +216,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
         </div>
         
         <!-- Events Grid -->
-        <div class="events-grid">
+        <div class="dashboard-grid">
             <?php if (empty($events)): ?>
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <div class="empty-state-icon">📅</div>
@@ -187,16 +226,13 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                 </div>
             <?php else: ?>
                 <?php foreach ($events as $event): 
-                    $is_past = strtotime($event['end_time']) < time();
-                    $is_current = strtotime($event['start_time']) <= time() && strtotime($event['end_time']) >= time();
-                    $is_upcoming = strtotime($event['start_time']) > time();
+                    $start_datetime = $event['start_date'] . ($event['start_time'] ? ' ' . $event['start_time'] : ' 00:00:00');
+                    $end_datetime = $event['end_date'] . ($event['end_time'] ? ' ' . $event['end_time'] : ' 23:59:59');
+                    $is_past = strtotime($end_datetime) < time();
+                    $is_current = strtotime($start_datetime) <= time() && strtotime($end_datetime) >= time();
+                    $is_upcoming = strtotime($start_datetime) > time();
                     
-                    $capacity_percentage = 0;
-                    if ($event['capacity'] > 0) {
-                        $capacity_percentage = ($event['current_participants'] / $event['capacity']) * 100;
-                    }
-                    
-                    $card_class = 'event-card';
+                    $card_class = 'card';
                     if ($is_past) $card_class .= ' event-past';
                     elseif ($is_current) $card_class .= ' event-current';
                     elseif ($is_upcoming) $card_class .= ' event-upcoming';
@@ -214,12 +250,25 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                         <div class="event-datetime">
                             <span>🕒</span>
                             <span>
-                                <?php echo date('M j, Y g:i A', strtotime($event['start_time'])); ?>
-                                <?php if (date('Y-m-d', strtotime($event['start_time'])) !== date('Y-m-d', strtotime($event['end_time']))): ?>
-                                    - <?php echo date('M j, Y g:i A', strtotime($event['end_time'])); ?>
-                                <?php else: ?>
-                                    - <?php echo date('g:i A', strtotime($event['end_time'])); ?>
-                                <?php endif; ?>
+                                <?php 
+                                $start_display = $event['start_date'];
+                                if ($event['start_time']) {
+                                    $start_display = date('M j, Y g:i A', strtotime($event['start_date'] . ' ' . $event['start_time']));
+                                } else {
+                                    $start_display = date('M j, Y', strtotime($event['start_date']));
+                                }
+                                echo $start_display;
+                                
+                                if ($event['end_date'] && $event['end_date'] !== $event['start_date']) {
+                                    if ($event['end_time']) {
+                                        echo ' - ' . date('M j, Y g:i A', strtotime($event['end_date'] . ' ' . $event['end_time']));
+                                    } else {
+                                        echo ' - ' . date('M j, Y', strtotime($event['end_date']));
+                                    }
+                                } elseif ($event['end_time'] && $event['start_time'] !== $event['end_time']) {
+                                    echo ' - ' . date('g:i A', strtotime($event['end_time']));
+                                }
+                                ?>
                             </span>
                         </div>
                         
@@ -244,8 +293,8 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                                             <?php echo $event['current_participants']; ?> / <?php echo $event['capacity']; ?> participants
                                         </div>
                                         <div class="capacity-bar">
-                                            <div class="capacity-fill <?php echo $capacity_percentage >= 100 ? 'capacity-full' : ''; ?>" 
-                                                 style="width: <?php echo min(100, $capacity_percentage); ?>%"></div>
+                                            <div class="capacity-fill <?php echo $event['capacity_percentage'] >= 100 ? 'capacity-full' : ''; ?>" 
+                                                 style="width: <?php echo min(100, $event['capacity_percentage']); ?>%"></div>
                                         </div>
                                     </div>
                                 <?php else: ?>
@@ -345,7 +394,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
         // Quick check-in function
         async function quickCheckIn(eventId) {
             try {
-                const response = await fetch('../api/manual_checkin.php', {
+                const response = await fetch('../api/manual-checkin.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -379,7 +428,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             content.innerHTML = 'Loading...';
             
             try {
-                const response = await fetch(`api/event_details.php?event_id=${eventId}`);
+                const response = await fetch(`../api/event-details.php?event_id=${eventId}`);
                 const event = await response.json();
                 
                 if (event.error) {
@@ -414,7 +463,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                     
                     <div class="modal-section">
                         <strong>👥 Participants:</strong><br>
-                        ${event.current_participants} ${event.max_participants > 0 ? '/ ' + event.max_participants : ''} participants
+                        ${event.current_participants} ${event.capacity > 0 ? '/ ' + event.capacity : ''} participants
                     </div>
                     
                     ${event.created_by_name ? `

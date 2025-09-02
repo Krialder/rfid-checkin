@@ -14,10 +14,19 @@ header('Content-Type: application/json');
 header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 
-// Only allow authenticated admin users
-if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
+// Only allow authenticated admin users (use same auth as register-user.php)
+try {
+    Auth::requireLogin();
+    $current_user = Auth::getCurrentUser();
+    
+    if ($current_user['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Admin access required']);
+        exit;
+    }
+} catch (Exception $e) {
     http_response_code(403);
-    echo json_encode(['error' => 'Access denied']);
+    echo json_encode(['error' => 'Authentication required']);
     exit;
 }
 
@@ -41,32 +50,8 @@ try {
     
     // Poll for new RFID scans from the hardware
     while ((microtime(true) - $startTime) < $maxWaitTime) {
-        // Check for recent RFID scans in AccessLogs
-        $stmt = $db->prepare("
-            SELECT rfid_tag, timestamp, details 
-            FROM AccessLogs 
-            WHERE rfid_tag IS NOT NULL 
-            AND rfid_tag != '' 
-            AND timestamp >= DATE_SUB(NOW(), INTERVAL 10 SECOND)
-            ORDER BY timestamp DESC 
-            LIMIT 1
-        ");
-        $stmt->execute();
-        $scan = $stmt->fetch();
-        
-        if ($scan && $scan['rfid_tag'] !== $lastTag) {
-            // New RFID tag detected
-            echo json_encode([
-                'success' => true,
-                'rfid_tag' => $scan['rfid_tag'],
-                'timestamp' => $scan['timestamp'],
-                'details' => $scan['details'] ? json_decode($scan['details'], true) : null
-            ]);
-            exit;
-        }
-        
-        // Also check if there's a manual scan request in a temporary table/cache
-        // This would be populated by the hardware when it detects a scan
+        // Check if there's a manual scan request in the queue (primary method)
+        // This is populated by the ESP32 when it detects a scan
         $stmt = $db->prepare("
             SELECT tag_value, created_at 
             FROM rfid_scan_queue 

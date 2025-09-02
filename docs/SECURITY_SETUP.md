@@ -6,12 +6,12 @@ This project uses `.gitignore` to protect sensitive configuration files from bei
 
 ### Configuration Files
 - `core/config.php` - Database credentials and application settings
-- `hardware/config.json` - Hardware configuration with WiFi credentials
+- `hardware/config.h` - Hardware configuration with WiFi credentials
 - `database/create_admin.sql` - Admin user creation with password hash
 
 ### Template Files (Safe for Git)
 - `core/config.template.php` - Template for database configuration
-- `hardware/config.template.json` - Template for hardware configuration  
+- `hardware/config-example.h` - Template for hardware configuration  
 - `database/create_admin.template.sql` - Template for admin user creation
 
 ## Setup Instructions
@@ -29,9 +29,9 @@ Then edit `core/config.php` with your actual:
 ### 2. Hardware Configuration
 ```bash
 # Copy the template and configure your hardware
-cp hardware/config.template.json hardware/config.json
+cp hardware/config-example.h hardware/config.h
 ```
-Then edit `hardware/config.json` with your actual:
+Then edit `hardware/config.h` with your actual:
 - WiFi SSID and password
 - Server URL
 - Device-specific settings
@@ -59,8 +59,8 @@ Then edit `database/create_admin.sql` with:
 │   ├── config.php              (ignored by Git)
 │   ├── config.template.php     (tracked by Git)
 ├── hardware/
-│   ├── config.json            (ignored by Git)
-│   ├── config.template.json   (tracked by Git)
+│   ├── config.h               (ignored by Git)
+│   ├── config-example.h       (tracked by Git)
 ├── database/
 │   ├── create_admin.sql       (ignored by Git)
 │   ├── create_admin.template.sql (tracked by Git)
@@ -69,6 +69,6 @@ Then edit `database/create_admin.sql` with:
 
 ## Important Notes
 
-- The actual configuration files (`config.php`, `config.json`, `create_admin.sql`) are already present in your local environment but won't be pushed to GitHub
+- The actual configuration files (`config.php`, `config.h`, `create_admin.sql`) are already present in your local environment but won't be pushed to GitHub
 - Always use the template files as a reference when setting up new environments
 - Keep your local configuration files secure and backed up privately

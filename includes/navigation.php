@@ -1,7 +1,7 @@
 <?php
 /**
  * Navigation Component
- * Requires user to be logged in and provides user context
+ * Primary navigation bar with role-based menu generation
  */
 
 // Ensure auth is loaded
@@ -18,12 +18,29 @@ if (!$user) {
     exit();
 }
 
-// Determine base path for links
+// Format user display name
+$displayName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+if (empty($displayName)) {
+    $displayName = $user['username'] ?? 'User';
+}
+
+// Determine base path for links based on current directory
+$currentDir = basename(dirname($_SERVER['PHP_SELF']));
 $basePath = '';
-if (basename(dirname($_SERVER['PHP_SELF'])) === 'admin') {
-    $basePath = '../';
-} elseif (basename(dirname($_SERVER['PHP_SELF'])) === 'frontend') {
-    $basePath = '../';
+
+// Calculate proper base path
+switch ($currentDir) {
+    case 'admin':
+    case 'frontend':
+    case 'auth':
+        $basePath = '../';
+        break;
+    case 'api':
+        $basePath = '../';
+        break;
+    default:
+        $basePath = './';
+        break;
 }
 ?>
 <nav class="navbar">
@@ -36,19 +53,19 @@ if (basename(dirname($_SERVER['PHP_SELF'])) === 'admin') {
     
     <div class="navbar-menu" id="navbarMenu">
         <div class="navbar-items">
-            <a href="<?php echo $basePath; ?>frontend/dashboard.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'frontend/dashboard.php' ? 'active' : ''; ?>">
+            <a href="<?php echo $basePath; ?>frontend/dashboard.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>">
                 📊 Dashboard
             </a>
             
-            <a href="<?php echo $basePath; ?>frontend/my-checkins.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'frontend/my-checkins.php' ? 'active' : ''; ?>">
+            <a href="<?php echo $basePath; ?>frontend/check-ins.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'check-ins.php' ? 'active' : ''; ?>">
                 🕒 My Check-ins
             </a>
             
-            <a href="<?php echo $basePath; ?>frontend/events.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'frontend/events.php' ? 'active' : ''; ?>">
+            <a href="<?php echo $basePath; ?>frontend/events.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'events.php' ? 'active' : ''; ?>">
                 📅 Events
             </a>
             
-            <a href="<?php echo $basePath; ?>frontend/analytics.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'frontend/analytics.php' ? 'active' : ''; ?>">
+            <a href="<?php echo $basePath; ?>frontend/analytics.php" class="navbar-item <?php echo basename($_SERVER['PHP_SELF']) === 'analytics.php' ? 'active' : ''; ?>">
                 📈 Analytics
             </a>
             
@@ -58,10 +75,12 @@ if (basename(dirname($_SERVER['PHP_SELF'])) === 'admin') {
                         ⚙️ Admin <span class="dropdown-arrow">▼</span>
                     </div>
                     <div class="dropdown-content">
-                        <a href="<?php echo $basePath; ?>admin/register_user.php">👤 Register User</a>
-                        <a href="<?php echo $basePath; ?>admin/dev_tools.php">🛠️ Database Inspector</a>
+                        <a href="<?php echo $basePath; ?>admin/register-user.php">👤 Register User</a>
                         <a href="<?php echo $basePath; ?>admin/users.php">👥 Manage Users</a>
-                        <a href="<?php echo $basePath; ?>admin/events.php">📅 Manage Events</a>
+                        <a href="<?php echo $basePath; ?>admin/user-groups.php">🏢 User Groups</a>
+                        <a href="<?php echo $basePath; ?>admin/events.php">📋 Events</a>
+                        <a href="<?php echo $basePath; ?>admin/analytics.php">📊 Analytics</a>
+                        <a href="<?php echo $basePath; ?>database/validate-database.php">🔍 Database Health</a>
                         <a href="<?php echo $basePath; ?>admin/rfid.php">📟 RFID Devices</a>
                         <a href="<?php echo $basePath; ?>admin/reports.php">📊 Reports</a>
                         <a href="<?php echo $basePath; ?>admin/settings.php">⚙️ System Settings</a>
@@ -80,7 +99,7 @@ if (basename(dirname($_SERVER['PHP_SELF'])) === 'admin') {
             <div class="user-dropdown">
                 <button class="user-btn" id="userMenuBtn">
                     <span class="user-avatar">👤</span>
-                    <span class="user-name"><?php echo htmlspecialchars($user['name'] ?? 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="user-name"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="dropdown-arrow">▼</span>
                 </button>
                 <div class="user-menu" id="userMenu">

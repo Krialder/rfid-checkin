@@ -1,7 +1,33 @@
 <?php
+/**
+ * User Dashboard Interface
+ * 
+ * Primary user interface providing comprehensive overview of check-in activities,
+ * real-time statistics, upcoming events, and quick action capabilities.
+ * Features responsive design with dynamic content loading via REST API.
+ * 
+ * Features:
+ * - Real-time activity statistics and analytics
+ * - Recent check-in history with detailed information
+ * - Upcoming events with one-click check-in capability
+ * - Manual check-in functionality with event selection
+ * - Responsive design optimized for all device types
+ * - Progressive enhancement with graceful degradation
+ * 
+ * @package    RFID Check-in System
+ * @subpackage User Interface
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
+ * @security   AUTHENTICATED_USERS_ONLY
+ */
+
+// Enforce user authentication before dashboard access
 require_once '../core/auth.php';
+require_once '../core/user-group-manager.php';
 Auth::requireLogin();
 $user = Auth::getCurrentUser();
+$groupManager = new UserGroupManager();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,8 +43,11 @@ $user = Auth::getCurrentUser();
     <?php include '../includes/navigation.php'; ?>
     
     <div class="main-content">
-        <div class="dashboard-header">
-            <h1>Welcome back, <?php echo htmlspecialchars($user['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>! 👋</h1>
+        <div class="page-header">
+            <h1>Welcome back, <?php 
+                $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                echo htmlspecialchars($fullName ?: $user['username'] ?? 'User', ENT_QUOTES, 'UTF-8'); 
+            ?>! 👋</h1>
             <p class="subtitle">Here's what's happening with your check-ins</p>
         </div>
         
@@ -59,6 +88,39 @@ $user = Auth::getCurrentUser();
                 <h3>📅 Upcoming Events</h3>
                 <div class="upcoming-events" id="upcomingEvents">
                     <div class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- User Groups -->
+            <div class="card">
+                <h3>🏢 My Groups</h3>
+                <div class="user-groups" id="userGroups">
+                    <?php 
+                    $userGroups = $groupManager->getUserGroups($user['user_id']);
+                    if (empty($userGroups)): 
+                    ?>
+                        <p style="color: var(--text-muted); text-align: center; padding: 1rem;">
+                            Not a member of any groups
+                        </p>
+                    <?php else: ?>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <?php foreach (array_slice($userGroups, 0, 4) as $group): ?>
+                                <span style="background: var(--bg-accent); color: var(--text-accent); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                                    <?php echo htmlspecialchars($group['group_name']); ?>
+                                </span>
+                            <?php endforeach; ?>
+                            <?php if (count($userGroups) > 4): ?>
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                    +<?php echo count($userGroups) - 4; ?> more
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="margin-top: 0.75rem;">
+                            <a href="profile.php" style="color: var(--color-primary); text-decoration: none; font-size: 0.9rem;">
+                                View all groups →
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             

@@ -361,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
             <?php if ($messageType === 'success'): ?>
                 <a href="auth/login.php">&larr; Go to Login</a>
             <?php else: ?>
-                <a href="auth/forgot_password.php">&larr; Request New Reset Link</a>
+                <a href="auth/forgot-password.php">&larr; Request New Reset Link</a>
             <?php endif; ?>
         </div>
     </div>

@@ -6,30 +6,20 @@ This guide covers setting up the RFID hardware components that integrate with th
 
 ## Hardware Configurations
 
-### Option 1: All-in-One NodeMCU Setup (Recommended)
-**File:** `NodeMCU_Simple.ino`
-- **Hardware:** NodeMCU ESP8266 + RC522 RFID Module + LEDs
-- **Pros:** Simple, cost-effective, wireless
-- **Cons:** Limited processing power
-- **Best for:** Single reader deployments
+### ESP32 RFID Setup (Recommended)
+**File:** `ESP32-RFID-Reader.ino`
+- **Hardware:** ESP32 Development Board + RC522 RFID Module + LEDs
+- **Pros:** Powerful, dual-core, wireless, enterprise features
+- **Cons:** Slightly more expensive than ESP8266
+- **Best for:** Production deployments, multiple reader setups
 
-### Option 2: Advanced NodeMCU Setup
-**File:** `NodeMCU_Modern.ino`
-- **Hardware:** NodeMCU ESP8266 + RC522 + LEDs + Buzzer + Web interface
-- **Pros:** Feature-rich, web configuration, robust error handling
-- **Cons:** More complex setup
-- **Best for:** Production deployments, multiple readers
+### Hardware Configuration Options
 
-### Option 3: Dual-Device Setup
-**Files:** `NodeMCU_Master.ino` + `Arduino_Mega_RFID.ino`
-- **Hardware:** NodeMCU ESP8266 (WiFi) + Arduino Mega (RFID processing)
-- **Pros:** Maximum reliability, dedicated RFID processing
-- **Cons:** Higher cost, more wiring
-- **Best for:** High-traffic locations, mission-critical applications
+Currently, this system provides a single, comprehensive ESP32-based solution that includes all advanced features.
 
 ## Quick Start Setup
 
-### For Simple NodeMCU Setup:
+### For ESP32 Setup:
 
 1. **Install Required Libraries:**
    ```
@@ -41,7 +31,7 @@ This guide covers setting up the RFID hardware components that integrate with th
 
 2. **Hardware Wiring:**
    ```
-   RC522 → NodeMCU
+   RC522 → ESP32
    SDA  → D4 (GPIO2)
    SCK  → D5 (GPIO14)
    MOSI → D7 (GPIO13)
@@ -55,7 +45,7 @@ This guide covers setting up the RFID hardware components that integrate with th
    ```
 
 3. **Configure the Code:**
-   Edit `NodeMCU_Simple.ino`:
+   Edit `ESP32-RFID-Reader.ino`:
    ```cpp
    const char* ssid = "YOUR_WIFI_SSID";
    const char* password = "YOUR_WIFI_PASSWORD";
@@ -65,19 +55,19 @@ This guide covers setting up the RFID hardware components that integrate with th
    ```
 
 4. **Upload and Test:**
-   - Upload the code to NodeMCU
+   - Upload the code to ESP32
    - Open Serial Monitor (115200 baud)
    - Watch for "System ready!" message
    - Test with RFID cards
 
 ## Advanced Configuration
 
-### Web-Based Configuration (Modern NodeMCU)
+### Web-Based Configuration (ESP32)
 
-The advanced NodeMCU setup includes a web interface for configuration:
+The ESP32 setup includes a web interface for configuration:
 
 1. **Initial Setup:**
-   - Upload `NodeMCU_Modern.ino`
+   - Upload `ESP32-RFID-Reader.ino`
    - On first boot, device creates WiFi hotspot "RFID-Setup"
    - Connect with password "12345678"
    - Configure WiFi and server settings
@@ -133,7 +123,7 @@ Debug: Use Serial Monitor to see raw RFID data
 
 ### Debug Commands
 
-For Simple NodeMCU setup, use Serial Monitor commands:
+For ESP32 setup, use Serial Monitor commands:
 - `debug` - Show system information
 - `test` - Test server connection
 - `wifi` - Check WiFi status
@@ -169,7 +159,7 @@ For multiple readers:
 ## Hardware Shopping List
 
 ### Basic Setup (1 Reader):
-- NodeMCU ESP8266 Development Board × 1
+- ESP32 Development Board × 1
 - RC522 RFID Module × 1
 - LEDs (Red, Green) × 2
 - 220Ω Resistors × 2

@@ -391,3 +391,43 @@ input[type="file"]:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
+
+/* Form Container Utilities */
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* RFID Input Anti-Suggestion Styles */
+#rfid_tag {
+    position: relative;
+}
+
+/* Prevent autocomplete dropdown styling */
+#rfid_tag:-webkit-autofill,
+#rfid_tag:-webkit-autofill:hover,
+#rfid_tag:-webkit-autofill:focus {
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    -webkit-text-fill-color: inherit !important;
+}
+
+/* Hide autocomplete dropdown arrows and decorations */
+#rfid_tag::-webkit-search-decoration,
+#rfid_tag::-webkit-search-cancel-button,
+#rfid_tag::-webkit-search-results-button,
+#rfid_tag::-webkit-search-results-decoration,
+#rfid_tag::-webkit-calendar-picker-indicator {
+    display: none !important;
+}
+
+/* Additional anti-suggestion measures */
+input[autocomplete="new-password"]::-webkit-contacts-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    margin: 0;
+}

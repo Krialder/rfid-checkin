@@ -71,24 +71,9 @@ $all_params = array_merge($user_params, $date_params);
     <?php include '../includes/navigation.php'; ?>
     
     <div class="main-content">
-        <div class="analytics-header">
-            <div>
-                <h1>📈 Analytics</h1>
-                <p class="subtitle"><?php echo $view_mode === 'system' ? 'System-wide' : 'Personal'; ?> check-in analytics and insights</p>
-            </div>
-            
-            <?php if ($user['role'] === 'admin'): ?>
-                <div class="view-selector">
-                    <a href="?view=personal&<?php echo http_build_query(array_diff_key($_GET, ['view' => ''])); ?>" 
-                       class="view-btn <?php echo $view_mode === 'personal' ? 'active' : ''; ?>">
-                        👤 Personal
-                    </a>
-                    <a href="?view=system&<?php echo http_build_query(array_diff_key($_GET, ['view' => ''])); ?>" 
-                       class="view-btn <?php echo $view_mode === 'system' ? 'active' : ''; ?>">
-                        🏢 System-wide
-                    </a>
-                </div>
-            <?php endif; ?>
+        <div class="page-header">
+            <h1>📈 Analytics</h1>
+            <p class="subtitle">Personal check-in analytics and insights</p>
         </div>
         
         <!-- Filters Section -->
@@ -97,32 +82,52 @@ $all_params = array_merge($user_params, $date_params);
                 <?php if ($user['role'] === 'admin'): ?>
                     <input type="hidden" name="view" value="<?php echo htmlspecialchars($view_mode); ?>">
                 <?php endif; ?>
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label for="range">Time Period</label>
-                        <select name="range" id="range" onchange="toggleCustomDates()">
-                            <option value="7" <?php echo $date_range === '7' ? 'selected' : ''; ?>>Last 7 Days</option>
-                            <option value="30" <?php echo $date_range === '30' ? 'selected' : ''; ?>>Last 30 Days</option>
-                            <option value="90" <?php echo $date_range === '90' ? 'selected' : ''; ?>>Last 90 Days</option>
-                            <option value="365" <?php echo $date_range === '365' ? 'selected' : ''; ?>>Last Year</option>
-                            <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>Custom Range</option>
-                        </select>
+                <div class="filters-row space-between">
+                    <div style="display: flex; gap: 20px; align-items: end;">
+                        <div class="filter-group">
+                            <label for="range">Time Period</label>
+                            <select name="range" id="range" onchange="toggleCustomDates()">
+                                <option value="7" <?php echo $date_range === '7' ? 'selected' : ''; ?>>Last 7 Days</option>
+                                <option value="30" <?php echo $date_range === '30' ? 'selected' : ''; ?>>Last 30 Days</option>
+                                <option value="90" <?php echo $date_range === '90' ? 'selected' : ''; ?>>Last 90 Days</option>
+                                <option value="365" <?php echo $date_range === '365' ? 'selected' : ''; ?>>Last Year</option>
+                                <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>Custom Range</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group" id="custom-dates" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
+                            <label for="custom_start">From</label>
+                            <input type="date" name="custom_start" id="custom_start" value="<?php echo htmlspecialchars($custom_start); ?>">
+                        </div>
+                        
+                        <div class="filter-group" id="custom-dates-end" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
+                            <label for="custom_end">To</label>
+                            <input type="date" name="custom_end" id="custom_end" value="<?php echo htmlspecialchars($custom_end); ?>">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
                     </div>
                     
-                    <div class="filter-group" id="custom-dates" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
-                        <label for="custom_start">From</label>
-                        <input type="date" name="custom_start" id="custom_start" value="<?php echo htmlspecialchars($custom_start); ?>">
-                    </div>
-                    
-                    <div class="filter-group" id="custom-dates-end" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
-                        <label for="custom_end">To</label>
-                        <input type="date" name="custom_end" id="custom_end" value="<?php echo htmlspecialchars($custom_end); ?>">
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
+                    <?php if ($user['role'] === 'admin'): ?>
+                        <div style="display: flex; gap: 15px; align-items: end;">
+                            <div class="filter-group">
+                                <label>View Mode</label>
+                                <div class="view-selector">
+                                    <a href="?view=personal&<?php echo http_build_query(array_diff_key($_GET, ['view' => ''])); ?>" 
+                                       class="view-btn <?php echo $view_mode === 'personal' ? 'active' : ''; ?>">
+                                        👤 Personal
+                                    </a>
+                                    <a href="?view=system&<?php echo http_build_query(array_diff_key($_GET, ['view' => ''])); ?>" 
+                                       class="view-btn <?php echo $view_mode === 'system' ? 'active' : ''; ?>">
+                                        🏢 System-wide
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

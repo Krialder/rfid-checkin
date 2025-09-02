@@ -1,12 +1,13 @@
 <?php
 /**
- * System Reports - Placeholder
+ * System Reports & Analytics
  * Advanced reporting and analytics for administrators
  */
 
 require_once '../core/config.php';
 require_once '../core/database.php';
 require_once '../core/auth.php';
+require_once '../core/user-group-manager.php';
 
 // Check if user is admin
 if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
@@ -17,6 +18,7 @@ if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
 
 $user = Auth::getCurrentUser();
 $db = getDB();
+$groupManager = new UserGroupManager();
 
 // Fetch real statistics
 try {
@@ -52,6 +54,12 @@ try {
     
     $checkin_success_rate = $total_checkins > 0 ? round(($successful_checkins / $total_checkins) * 100) : 0;
     
+    // User Group Statistics
+    $groupStats = $groupManager->getGroupStatistics();
+    $total_groups = $groupStats['total_groups'] ?? 0;
+    $total_memberships = $groupStats['total_memberships'] ?? 0;
+    $events_with_groups = $groupStats['events_with_groups'] ?? 0;
+    
 } catch (Exception $e) {
     // Fallback values if database query fails
     $total_checkins = 0;
@@ -60,6 +68,9 @@ try {
     $recent_checkins = 0;
     $events_this_month = 0;
     $checkin_success_rate = 0;
+    $total_groups = 0;
+    $total_memberships = 0;
+    $events_with_groups = 0;
     
     // Debug: Log the error (remove in production)
     error_log("Database error in reports.php: " . $e->getMessage());
@@ -118,12 +129,12 @@ try {
                     <span class="stat-label">Events This Month</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number"><?php echo date('Y-m-d'); ?></span>
-                    <span class="stat-label">Current Date</span>
+                    <span class="stat-number"><?php echo number_format($total_groups); ?></span>
+                    <span class="stat-label">User Groups</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number"><?php echo date('H:i'); ?></span>
-                    <span class="stat-label">Current Time</span>
+                    <span class="stat-number"><?php echo number_format($total_memberships); ?></span>
+                    <span class="stat-label">Group Memberships</span>
                 </div>
             </div>
         </div>
@@ -145,6 +156,12 @@ try {
                         <button class="btn btn-secondary">Generate Report</button>
                     </div>
                     
+                    <div class="report-category" onclick="window.location.href='../admin/analytics.php'">
+                        <h4>🏢 User Groups Analytics</h4>
+                        <p>Group memberships, event assignments, deduplication metrics</p>
+                        <button class="btn btn-primary">View Analytics</button>
+                    </div>
+                    
                     <div class="report-category" onclick="alert('Feature coming soon!')">
                         <h4>🔒 Security Audit</h4>
                         <p>Login attempts, access logs, security incidents</p>
@@ -162,10 +179,10 @@ try {
             <!-- Export Options -->
             <div class="card">
                 <h3>📄 Export Options</h3>
-                <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div class="info-box primary">
                     <h4>🚧 Advanced Reporting Coming Soon</h4>
                     <p>This section will include:</p>
-                    <ul style="margin: 15px 0; padding-left: 25px;">
+                    <ul>
                         <li>Custom date range selection</li>
                         <li>Multiple export formats (PDF, Excel, CSV)</li>
                         <li>Scheduled report generation</li>
@@ -191,14 +208,16 @@ try {
             <!-- Current Analytics -->
             <div class="card">
                 <h3>💡 Available Now</h3>
-                <div style="background: #f0f8f0; padding: 15px; border-radius: 8px;">
+                <div class="info-box success">
                     <p><strong>Current Analytics Available:</strong></p>
-                    <ul style="margin: 10px 0; padding-left: 25px;">
+                    <ul>
                         <li><a href="../frontend/analytics.php">Interactive Analytics Dashboard</a> - Charts and visualizations</li>
-                        <li><a href="../frontend/my-checkins.php">Personal Check-in History</a> - Individual user reports</li>
-                        <li><a href="../admin_dev_tools.php">Database Inspector</a> - Raw data access</li>
+                        <li><a href="../admin/analytics.php">Analytics</a> - Complete system analytics with groups</li>
+                        <li><a href="../admin/user-groups.php">User Groups Management</a> - Group statistics and management</li>
+                        <li><a href="../frontend/check-ins.php">Personal Check-in History</a> - Individual user reports</li>
+                        <li><a href="../database/validate-database.php">Database Validator</a> - Database health check</li>
                         <li><a href="../admin/users.php">User Management</a> - User statistics and management</li>
-                        <li><a href="../admin/frontend/events.php">Event Management</a> - Event analytics and management</li>
+                        <li><a href="../frontend/events.php">Event Management</a> - Event analytics and management</li>
                     </ul>
                 </div>
             </div>

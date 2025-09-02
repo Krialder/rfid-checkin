@@ -6,10 +6,12 @@
 
 require_once '../core/auth.php';
 require_once '../core/database.php';
+require_once '../core/user-group-manager.php';
 
 Auth::requireLogin();
 $user = Auth::getCurrentUser(true); // Force refresh to get complete user data
 $db = getDB();
+$groupManager = new UserGroupManager();
 
 // Ensure all required user fields are available with defaults
 $user = array_merge([
@@ -410,6 +412,9 @@ function removeRFIDTag($db, $user_id) {
                 <button class="tab-btn active" onclick="showTab(event, 'profile-tab')">
                     👤 Profile Information
                 </button>
+                <button class="tab-btn" onclick="showTab(event, 'groups-tab')">
+                    🏢 My Groups
+                </button>
                 <button class="tab-btn" onclick="showTab(event, 'rfid-tab')">
                     📟 RFID Tags
                 </button>
@@ -467,6 +472,74 @@ function removeRFIDTag($db, $user_id) {
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+            
+            <!-- User Groups Tab -->
+            <div id="groups-tab" class="tab-content">
+                <div class="section-card">
+                    <h2 class="section-title">🏢 My Groups</h2>
+                    <p class="text-secondary">Groups you belong to and their details</p>
+                    
+                    <?php 
+                    // Get user's group memberships
+                    $userGroups = $groupManager->getUserGroups($user['user_id']);
+                    if (empty($userGroups)): 
+                    ?>
+                        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+                            <h3>No Group Memberships</h3>
+                            <p>You are not currently a member of any groups.</p>
+                            <p class="text-muted">Contact your administrator to be added to relevant groups.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="groups-grid" style="display: grid; gap: 1rem; margin-top: 1.5rem;">
+                            <?php foreach ($userGroups as $group): ?>
+                                <div class="group-item" style="padding: 1rem; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-primary);">
+                                    <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 0.5rem;">
+                                        <h4 style="margin: 0; color: var(--text-primary);"><?php echo htmlspecialchars($group['group_name']); ?></h4>
+                                        <span class="badge" style="background: var(--bg-accent); color: var(--text-accent); padding: 0.25rem 0.5rem; border-radius: var(--radius-xs); font-size: 0.75rem;">
+                                            <?php echo ucfirst($group['role'] ?? 'member'); ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <?php if (!empty($group['description'])): ?>
+                                        <p style="margin: 0.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">
+                                            <?php echo htmlspecialchars($group['description']); ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    
+                                    <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+                                        <span>📂 <?php echo ucfirst($group['group_type'] ?? 'custom'); ?></span>
+                                        <span>👥 <?php echo $group['member_count'] ?? 0; ?> members</span>
+                                        <span>📅 Joined <?php echo date('M j, Y', strtotime($group['joined_at'])); ?></span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        
+                        <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-info); border-left: 4px solid var(--color-info); border-radius: var(--radius-sm);">
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-info);">📊 Group Statistics</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-primary);"><?php echo count($userGroups); ?></div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted);">Total Groups</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-success);">
+                                        <?php echo count(array_filter($userGroups, fn($g) => $g['role'] === 'admin')); ?>
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted);">Admin Roles</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-warning);">
+                                        <?php echo count(array_filter($userGroups, fn($g) => $g['role'] === 'leader')); ?>
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted);">Leader Roles</div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             

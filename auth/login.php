@@ -14,7 +14,7 @@
             <p>Please sign in to your account</p>
         </div>
         
-        <form id="loginForm" method="POST" action="login_process.php" class="login-form">
+        <form id="loginForm" method="POST" action="login-process.php" class="login-form">
             <?php if (isset($_GET['error'])): ?>
                 <div class="alert alert-error">
                     <?php echo htmlspecialchars($_GET['error']); ?>
@@ -98,7 +98,7 @@
         </script>
         
         <div class="login-footer">
-            <a href="forgot_password.php">Forgot your password?</a>
+            <a href="forgot-password.php">Forgot your password?</a>
             <div class="divider"></div>
             <p>Don't have an account? Contact your administrator.</p>
         </div>

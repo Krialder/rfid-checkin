@@ -1,19 +1,45 @@
 <?php
 /**
- * API endpoint for dashboard data
+ * Dashboard Data API Endpoint
+ * 
+ * RESTful API endpoint providing comprehensive dashboard data including
+ * user statistics, recent activity, upcoming events, and available
+ * check-in opportunities. Optimized for real-time updates and mobile apps.
+ * 
+ * Response Data:
+ * - User-specific statistics (total/monthly check-ins, unique events)
+ * - Recent check-in history with event details and timestamps
+ * - Upcoming events with capacity and availability information
+ * - Available events for immediate manual check-in
+ * - Performance metrics and user activity insights
+ * 
+ * @package    RFID Check-in System
+ * @subpackage REST API
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
+ * @security   AUTHENTICATED_USERS_ONLY
  */
 
+// Load authentication and database systems
 require_once '../core/auth.php';
+require_once '../core/database.php';
+require_once '../core/user-group-manager.php';
+
+// Set JSON response headers for API compliance
 header('Content-Type: application/json');
 
+// Enforce user authentication for data access
 Auth::requireLogin();
 $user = Auth::getCurrentUser();
 $db = getDB();
+$groupManager = new UserGroupManager();
 
 try {
+    // Initialize response container
     $response = [];
     
-    // Get quick stats
+    // Calculate comprehensive user statistics
     $stmt = $db->prepare("
         SELECT 
             COUNT(*) as total_checkins,
@@ -29,6 +55,7 @@ try {
     $stmt->execute([$user['user_id']]);
     $stats = $stmt->fetch();
     
+    // Build statistics response with formatted data
     $response['stats'] = [
         'total_checkins' => (int)$stats['total_checkins'],
         'month_checkins' => (int)$stats['month_checkins'],
@@ -36,7 +63,7 @@ try {
         'avg_checkin_time' => $stats['avg_checkin_delay'] ? round($stats['avg_checkin_delay'], 1) . ' min' : 'N/A'
     ];
     
-    // Get recent check-ins
+    // Retrieve recent check-in activity with event details
     $stmt = $db->prepare("
         SELECT 
             e.name as event_name,
@@ -52,7 +79,7 @@ try {
     $stmt->execute([$user['user_id']]);
     $response['recent_checkins'] = $stmt->fetchAll();
     
-    // Get upcoming events
+    // Fetch upcoming events for planning purposes
     $stmt = $db->prepare("
         SELECT 
             event_id,
@@ -70,7 +97,7 @@ try {
     $stmt->execute();
     $response['upcoming_events'] = $stmt->fetchAll();
     
-    // Get available events for manual check-in
+    // Identify events available for immediate manual check-in
     $stmt = $db->prepare("
         SELECT 
             event_id,
@@ -87,9 +114,19 @@ try {
     $stmt->execute();
     $response['available_events'] = $stmt->fetchAll();
     
+    // Get user's group memberships
+    $userGroups = $groupManager->getUserGroups($user['user_id']);
+    $response['user_groups'] = [
+        'count' => count($userGroups),
+        'groups' => array_slice($userGroups, 0, 3), // Show first 3 groups
+        'has_more' => count($userGroups) > 3
+    ];
+    
+    // Return structured JSON response
     echo json_encode($response);
     
 } catch (PDOException $e) {
+    // Log database errors for system monitoring
     error_log('Dashboard API error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Database error occurred']);

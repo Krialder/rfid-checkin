@@ -31,13 +31,15 @@ try {
             END as user_checkin_status,
             c.checkin_time as user_checkin_time,
             c.checkout_time as user_checkout_time,
-            (e.start_time <= NOW() AND e.end_time >= NOW()) as is_current,
-            (e.start_time > NOW()) as is_upcoming,
-            (e.end_time < NOW()) as is_past
-        FROM Events e
-        LEFT JOIN Users u ON e.created_by = u.user_id
-        LEFT JOIN CheckIn c ON e.event_id = c.event_id AND c.user_id = ? 
-            AND DATE(c.checkin_time) = DATE(e.start_time)
+            (TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) <= NOW() 
+             AND TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, '23:59:59')) >= NOW()) as is_current,
+            (TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) > NOW()) as is_upcoming,
+            (TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, '23:59:59')) < NOW()) as is_past,
+            (SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'checked_in') as current_participants
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        LEFT JOIN checkin c ON e.event_id = c.event_id AND c.user_id = ? 
+            AND DATE(c.checkin_time) = e.start_date
         WHERE e.event_id = ? AND e.active = 1
     ");
     
@@ -62,9 +64,9 @@ try {
                 c.checkin_time,
                 c.checkout_time,
                 c.status,
-                c.method
-            FROM CheckIn c
-            JOIN Users u ON c.user_id = u.user_id
+                c.checkin_method as method
+            FROM checkin c
+            JOIN users u ON c.user_id = u.user_id
             WHERE c.event_id = ?
             ORDER BY c.checkin_time DESC
             LIMIT 10

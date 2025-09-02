@@ -1,19 +1,57 @@
-/*
- * Dashboard JavaScript
- * Handles dynamic content loading and interactions
+/**
+ * Dashboard Management System
+ * 
+ * Comprehensive JavaScript module for managing the user dashboard interface.
+ * Handles real-time data loading, user interactions, and dynamic content updates
+ * through REST API integration.
+ * 
+ * Features:
+ * - Real-time dashboard data refresh via AJAX
+ * - Modal dialog management for user interactions
+ * - Comprehensive error handling and user feedback
+ * - Manual check-in functionality with form validation
+ * - Responsive notification system with auto-dismiss
+ * - Cross-browser compatibility and accessibility support
+ * 
+ * @package    RFID Check-in System
+ * @subpackage Frontend JavaScript
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
  */
 
 class Dashboard {
+    /**
+     * Initialize the Dashboard management system
+     * Sets up event listeners and loads initial data
+     */
     constructor() {
         this.init();
     }
     
+    /**
+     * Initialize dashboard components and functionality
+     * Orchestrates the setup of all dashboard features
+     * 
+     * @return {void}
+     * @since 1.0.0
+     */
     init() {
         this.loadDashboardData();
         this.setupEventListeners();
         this.setupModal();
     }
     
+    /**
+     * Load dashboard data from REST API endpoint
+     * 
+     * Fetches real-time dashboard information including user statistics,
+     * recent check-ins, upcoming events, and available events for manual check-in.
+     * Implements comprehensive error handling and fallback mechanisms.
+     * 
+     * @return {Promise<void>}
+     * @since 1.0.0
+     */
     async loadDashboardData() {
         try {
             const response = await fetch('../api/dashboard.php');
@@ -35,6 +73,16 @@ class Dashboard {
         }
     }
     
+    /**
+     * Update dashboard statistics display
+     * 
+     * Renders user statistics including total check-ins, monthly activity,
+     * average check-in time, and unique events attended.
+     * 
+     * @param {Object} stats Statistics data from API response
+     * @return {void}
+     * @since 1.0.0
+     */
     updateStats(stats) {
         const statsContainer = document.querySelector('.stats-grid');
         if (!statsContainer) return;
@@ -49,16 +97,26 @@ class Dashboard {
                 <div class="stat-label">This Month</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">${stats.unique_events || 0}</div>
-                <div class="stat-label">Unique Events</div>
-            </div>
-            <div class="stat-item">
                 <div class="stat-number">${stats.avg_checkin_time || 'N/A'}</div>
                 <div class="stat-label">Avg. Check-in Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${stats.unique_events || 0}</div>
+                <div class="stat-label">Unique Events</div>
             </div>
         `;
     }
     
+    /**
+     * Update recent check-ins display
+     * 
+     * Renders a chronological list of the user's recent check-in activities
+     * with event details, timestamps, and status indicators.
+     * 
+     * @param {Array} checkins Array of recent check-in records
+     * @return {void}
+     * @since 1.0.0
+     */
     updateRecentCheckins(checkins) {
         const container = document.querySelector('#recentCheckins');
         if (!container) return;
@@ -86,12 +144,22 @@ class Dashboard {
                     </div>
                 </div>
                 <span class="status-badge status-${checkin.status}">
-                    ${checkin.status === 'checked-in' ? '✅' : '⏱️'} ${checkin.status}
+                    ${checkin.status === 'checked_in' ? '✅' : '⏱️'} ${checkin.status}
                 </span>
             </div>
         `).join('');
     }
     
+    /**
+     * Update upcoming events display
+     * 
+     * Displays scheduled events that the user can attend, including
+     * event details, timing, location, and capacity information.
+     * 
+     * @param {Array} events Array of upcoming event objects
+     * @return {void}
+     * @since 1.0.0
+     */
     updateUpcomingEvents(events) {
         const container = document.querySelector('#upcomingEvents');
         if (!container) return;
@@ -186,7 +254,7 @@ class Dashboard {
     
     async handleManualCheckIn(formData) {
         try {
-            const response = await fetch('../api/manual_checkin.php', {
+            const response = await fetch('api/manual-checkin.php', {
                 method: 'POST',
                 body: formData
             });

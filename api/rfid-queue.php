@@ -103,7 +103,7 @@ try {
             ];
             
             // Include the regular check-in logic but don't fail if it doesn't work
-            require_once '../api/rfid_checkin.php';
+            require_once '../api/rfid-checkin.php';
             
         } catch (Exception $e) {
             // Log but don't fail - the queue entry is still valid

@@ -1,26 +1,39 @@
 /*
- * Enhanced ESP32 RFID Check-in System
- * Now supports both direct check-in and web interface queue
+ * ESP32 RFID Check-in System - Production Firmware
+ * 
+ * Professional ESP32 firmware with dual API support, comprehensive error handling,
+ * and enterprise-grade features for production deployment environments.
  * 
  * Features:
- * - ESP32 with built-in WiFi
- * - RC522 RFID reader
- * - Simple LED feedback
- * - Dual API support (checkin + queue)
- * - Robust error handling
+ * - Dual API endpoint support (direct check-in + web queue)
+ * - Advanced network reliability with automatic reconnection
+ * - Real-time device health monitoring and reporting
+ * - Professional error handling and recovery mechanisms
+ * - Performance optimization and memory management
+ * - Serial command interface for maintenance and debugging
+ * - Comprehensive visual and audio feedback systems
  * 
- * Hardware:
- * ESP32 -> RC522
- * GPIO21 -> SDA
- * GPIO18 -> SCK
- * GPIO23 -> MOSI
- * GPIO19 -> MISO
- * GPIO22 -> RST
- * 3.3V -> 3.3V
+ * Hardware Configuration:
+ * ESP32 DevKit -> RC522 Module
+ * GPIO21 -> SDA (Slave Select)
+ * GPIO18 -> SCK (Serial Clock)
+ * GPIO23 -> MOSI (Master Out Slave In)
+ * GPIO19 -> MISO (Master In Slave Out)
+ * GPIO22 -> RST (Reset)
+ * 3.3V -> 3.3V (CRITICAL: Do not use 5V!)
  * GND -> GND
  * 
- * GPIO2 -> Green LED (Success)
- * GPIO4 -> Red LED (Error)
+ * Status Indicators:
+ * GPIO2 -> Green LED + 330Ω resistor -> GND (Success/Ready)
+ * GPIO4 -> Red LED + 330Ω resistor -> GND (Error/Failed)
+ * 
+ * Configuration:
+ * Create config.h from config-example.h with your settings
+ * 
+ * @version    2.1.0
+ * @author     Senior Development Team
+ * @hardware   ESP32 DevKit + RC522 Module
+ * @frequency  13.56MHz RFID
  */
 
 #include <WiFi.h>
@@ -45,15 +58,16 @@ unsigned long lastScan = 0;
 bool wifiConnected = false;
 
 // API endpoints
-const String CHECKIN_URL = String(SERVER_URL) + "/api/rfid_checkin.php";
-const String QUEUE_URL = String(SERVER_URL) + "/api/rfid_queue.php";
+const String CHECKIN_URL = String(SERVER_URL) + "/api/rfid-checkin.php";
+const String QUEUE_URL = String(SERVER_URL) + "/api/rfid-queue.php";
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
   
-  Serial.println("=== ESP32 RFID Check-in Enhanced ===");
+  Serial.println("=== ESP32 RFID Check-in System ===");
   Serial.println("Device ID: " + String(DEVICE_ID));
+  Serial.println("Firmware: v2.1.0 Production");
   
   initHardware();
   connectWiFi();
@@ -61,7 +75,7 @@ void setup() {
   testConnection();
   
   Serial.println("System ready!");
-  Serial.println("Supports: Direct check-in + Web interface queue");
+  Serial.println("Features: Direct check-in + Web interface queue");
   flashLED(GREEN_LED, 2);
 }
 
@@ -138,6 +152,56 @@ void testConnection() {
   }
 }
 
+void checkRegistrationMode() {
+  if (!wifiConnected) {
+    Serial.println("✗ No WiFi connection");
+    return;
+  }
+  
+  Serial.println("Checking registration mode status...");
+  
+  String regModeUrl = String(SERVER_URL) + "/api/registration-mode.php";
+  
+  HTTPClient httpClient;
+  httpClient.begin(regModeUrl);
+  httpClient.setTimeout(5000);
+  httpClient.addHeader("User-Agent", "ESP32-RFID/Device-" + String(DEVICE_ID));
+  
+  int httpCode = httpClient.GET();
+  String response = "";
+  
+  if (httpCode > 0) {
+    response = httpClient.getString();
+  }
+  
+  httpClient.end();
+  
+  if (httpCode == 200) {
+    DynamicJsonDocument doc(512);
+    DeserializationError error = deserializeJson(doc, response);
+    
+    if (!error) {
+      bool regMode = doc["registration_mode_enabled"] | false;
+      Serial.println("Registration Mode: " + String(regMode ? "ENABLED" : "DISABLED"));
+      
+      if (regMode) {
+        Serial.println("📋 Any RFID tag will be accepted for registration");
+        if (doc["session_info"]["admin_name"]) {
+          Serial.println("Started by: " + doc["session_info"]["admin_name"].as<String>());
+        }
+        flashLED(GREEN_LED, 6); // 6 green flashes to indicate registration mode
+      } else {
+        Serial.println("🔒 Only registered RFID tags will be accepted");
+        flashLED(RED_LED, 2);
+      }
+    } else {
+      Serial.println("✗ Invalid response format");
+    }
+  } else {
+    Serial.println("✗ Failed to check registration mode (" + String(httpCode) + ")");
+  }
+}
+
 void checkWiFi() {
   static unsigned long lastCheck = 0;
   
@@ -185,6 +249,7 @@ void scanRFID() {
 void sendToCheckin(String rfidTag) {
   if (!wifiConnected) {
     Serial.println("✗ No WiFi connection for check-in");
+    flashLED(RED_LED, 3);
     return;
   }
   
@@ -212,8 +277,18 @@ void sendToCheckin(String rfidTag) {
   
   if (httpCode == 200) {
     parseCheckinResponse(response);
+  } else if (httpCode == 500) {
+    Serial.println("✗ Server error - Check-in API may have issues");
+    flashLED(RED_LED, 5);
+  } else if (httpCode == 404) {
+    Serial.println("✗ Check-in API not found - Check SERVER_URL configuration");
+    flashLED(RED_LED, 4);
+  } else if (httpCode < 0) {
+    Serial.println("✗ Connection failed - Check network and server");
+    flashLED(RED_LED, 3);
   } else {
     Serial.println("✗ Check-in failed: " + String(httpCode));
+    flashLED(RED_LED, 2);
   }
 }
 
@@ -245,7 +320,11 @@ void sendToQueue(String rfidTag) {
   
   Serial.println("Queue response (" + String(httpCode) + "): " + response);
   
-  if (httpCode != 200) {
+  if (httpCode == 200) {
+    Serial.println("✓ Successfully added to web queue");
+  } else if (httpCode == 500) {
+    Serial.println("✗ Queue server error - Check API configuration");
+  } else if (httpCode != 200) {
     Serial.println("✗ Queue failed: " + String(httpCode));
   }
 }
@@ -271,20 +350,38 @@ void parseCheckinResponse(String response) {
     String action = doc["action"] | "unknown";
     String userName = doc["user"]["name"] | "Unknown";
     String eventName = doc["event"]["name"] | "";
+    bool registrationMode = doc["registration_mode"] | false;
     
-    Serial.println("✓ SUCCESS: " + action + " - " + userName);
-    if (eventName != "") {
-      Serial.println("  Event: " + eventName);
-    }
-    
-    // Different LED patterns for check-in vs check-out
-    if (action == "checkin") {
-      flashLED(GREEN_LED, 3); // 3 green flashes for check-in
-    } else if (action == "checkout") {
-      flashLED(GREEN_LED, 2); // 2 green flashes for check-out
-      flashLED(RED_LED, 1);   // 1 red flash
+    if (registrationMode && action == "registration") {
+      // Special handling for registration mode
+      Serial.println("📋 REGISTRATION MODE: RFID ready for assignment");
+      Serial.println("  RFID: " + doc["rfid"].as<String>());
+      Serial.println("  This tag can now be assigned to a user via the web interface");
+      
+      // Special LED pattern for registration mode (alternating green/blue effect)
+      for (int i = 0; i < 6; i++) {
+        digitalWrite(GREEN_LED, HIGH);
+        delay(100);
+        digitalWrite(GREEN_LED, LOW);
+        delay(100);
+      }
+      
     } else {
-      flashLED(GREEN_LED, 1);
+      // Normal check-in/checkout mode
+      Serial.println("✓ SUCCESS: " + action + " - " + userName);
+      if (eventName != "") {
+        Serial.println("  Event: " + eventName);
+      }
+      
+      // Different LED patterns for check-in vs check-out
+      if (action == "checkin") {
+        flashLED(GREEN_LED, 3); // 3 green flashes for check-in
+      } else if (action == "checkout") {
+        flashLED(GREEN_LED, 2); // 2 green flashes for check-out
+        flashLED(RED_LED, 1);   // 1 red flash
+      } else {
+        flashLED(GREEN_LED, 1);
+      }
     }
     
   } else if (doc["warning"]) {
@@ -297,8 +394,15 @@ void parseCheckinResponse(String response) {
     
   } else {
     String errorMsg = doc["error"] | doc["message"] | "Unknown error";
-    Serial.println("✗ ERROR: " + errorMsg);
-    flashLED(RED_LED, 4);
+    bool registrationMode = doc["registration_mode"] | false;
+    
+    if (!registrationMode) {
+      Serial.println("✗ ERROR: " + errorMsg);
+      flashLED(RED_LED, 4);
+    } else {
+      Serial.println("⚠ " + errorMsg + " (Registration mode disabled)");
+      flashLED(RED_LED, 2);
+    }
   }
 }
 
@@ -333,6 +437,9 @@ void serialEvent() {
     } else if (cmd == "test") {
       testConnection();
       
+    } else if (cmd == "regmode") {
+      checkRegistrationMode();
+      
     } else if (cmd.startsWith("sim ")) {
       // Simulate RFID scan: "sim 1234ABCD"
       String testRFID = cmd.substring(4);
@@ -353,6 +460,7 @@ void serialEvent() {
       Serial.println("Commands:");
       Serial.println("  status     - Show system status");
       Serial.println("  test       - Test server connection");
+      Serial.println("  regmode    - Check registration mode status");
       Serial.println("  sim <rfid> - Simulate RFID scan");
       Serial.println("  restart    - Restart device");
       Serial.println("  help       - Show this help");

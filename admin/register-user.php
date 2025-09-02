@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Check if RFID tag already exists (if provided)
         if (!empty($rfid_tag)) {
-            $stmt = $db->prepare("SELECT user_id FROM Users WHERE rfid_tag = ?");
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE rfid_tag = ?");
             $stmt->execute([$rfid_tag]);
             if ($stmt->fetch()) {
                 throw new Exception('RFID tag is already assigned to another user');
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         
         $stmt = $db->prepare("
-            INSERT INTO Users (username, first_name, last_name, email, phone, password, rfid_tag, role, department, is_active, created_at) 
+            INSERT INTO users (username, first_name, last_name, email, phone, password, rfid_tag, role, department, is_active, created_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
         ");
         
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Log the registration activity
         $stmt = $db->prepare("
-            INSERT INTO ActivityLog (user_id, action, details, ip_address, timestamp) 
+            INSERT INTO activitylog (user_id, action, details, ip_address, timestamp) 
             VALUES (?, 'user_registration', ?, ?, NOW())
         ");
         $stmt->execute([
@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'department' => $department ?? ''
         ];
         
-        header('Location: ' . BASE_URL . '/admin/register_user.php?' . http_build_query($redirect_data));
+        header('Location: ' . BASE_URL . '/admin/register-user.php?' . http_build_query($redirect_data));
         exit();
     }
 }
@@ -182,6 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../assets/css/navigation.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/forms.css">
+    <link rel="stylesheet" href="../assets/css/admin-tools.css">
 </head>
 <body>
     <?php include '../includes/navigation.php'; ?>
@@ -192,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="subtitle">Add a new user to the system</p>
         </div>
         
-        <div class="container" style="max-width: 600px;">
+        <div class="container form-container">
             <div class="card">
                 
                 <?php if (isset($_GET['error'])): ?>
@@ -262,7 +263,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                        value="<?php echo htmlspecialchars($_GET['rfid_tag'] ?? ''); ?>"
                                        pattern="[A-Za-z0-9]{6,20}" 
                                        title="6-20 characters, letters and numbers only"
-                                       placeholder="Enter RFID tag or scan below">
+                                       placeholder="Enter RFID tag or scan below"
+                                       autocomplete="new-password"
+                                       autocorrect="off"
+                                       autocapitalize="off"
+                                       spellcheck="false"
+                                       role="textbox">
                                 <button type="button" class="btn btn-primary btn-scan-rfid" 
                                         data-rfid-scan data-rfid-target="rfid_tag"
                                         title="Scan RFID tag using connected reader (Ctrl+R)">
@@ -323,6 +329,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.getElementById('rfid_tag').addEventListener('input', function() {
             this.value = this.value.toUpperCase();
         });
+        
+        // Debug logging for RFID scanner
+        console.log('🧪 RFID Scanner Debug Mode Active');
+        
+        // Override console.log to show messages on page
+        const originalLog = console.log;
+        const debugDiv = document.createElement('div');
+        debugDiv.id = 'debug-console';
+        debugDiv.style.cssText = `
+            position: fixed; 
+            bottom: 10px; 
+            right: 10px; 
+            width: 400px; 
+            max-height: 200px; 
+            background: rgba(0,0,0,0.8); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            overflow-y: auto; 
+            z-index: 10000;
+            display: none;
+        `;
+        document.body.appendChild(debugDiv);
+        
+        // Show debug console when RFID scanning starts
+        let debugMode = false;
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-rfid-scan]')) {
+                debugMode = true;
+                debugDiv.style.display = 'block';
+                debugDiv.innerHTML = '<strong>🧪 RFID Debug Console</strong><br>';
+            }
+        });
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            if (debugMode) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugDiv.innerHTML += `[${timestamp}] ${args.join(' ')}<br>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        };
     </script>
 </body>
 </html>

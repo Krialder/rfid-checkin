@@ -18,7 +18,7 @@
 
 // ===== SERVER SETTINGS =====
 // Update with your server's IP address or domain
-#define SERVER_URL "http://192.168.1.100/rfid-checkin/api/rfid_checkin.php"
+#define SERVER_URL "http://192.168.1.100/rfid-checkin"
 
 // ===== DEVICE SETTINGS =====
 #define DEVICE_ID "ESP32-MAIN"

@@ -59,8 +59,8 @@ $where_clause = implode(' AND ', $where_conditions);
 // Get total count for pagination
 $count_sql = "
     SELECT COUNT(*) as total 
-    FROM CheckIn c
-    JOIN Events e ON c.event_id = e.event_id
+    FROM checkin c
+    JOIN events e ON c.event_id = e.event_id
     WHERE $where_clause
 ";
 $stmt = $db->prepare($count_sql);
@@ -75,21 +75,21 @@ $sql = "
         c.checkin_time,
         c.checkout_time,
         c.status,
-        c.method,
+        c.checkin_method as method,
         c.ip_address,
         e.name as event_name,
         e.location,
         e.description,
-        e.start_time,
-        e.end_time,
-        TIMESTAMPDIFF(MINUTE, e.start_time, c.checkin_time) as checkin_delay_minutes,
+        TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) as start_time,
+        TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, '23:59:59')) as end_time,
+        TIMESTAMPDIFF(MINUTE, TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')), c.checkin_time) as checkin_delay_minutes,
         CASE 
             WHEN c.checkout_time IS NOT NULL 
             THEN TIMESTAMPDIFF(MINUTE, c.checkin_time, c.checkout_time)
             ELSE NULL
         END as duration_minutes
-    FROM CheckIn c
-    JOIN Events e ON c.event_id = e.event_id
+    FROM checkin c
+    JOIN events e ON c.event_id = e.event_id
     WHERE $where_clause
     ORDER BY c.checkin_time DESC
     LIMIT $per_page OFFSET $offset
@@ -103,17 +103,17 @@ $checkins = $stmt->fetchAll();
 $stats_sql = "
     SELECT 
         COUNT(*) as total_checkins,
-        COUNT(CASE WHEN c.status = 'checked-in' THEN 1 END) as active_checkins,
-        COUNT(CASE WHEN c.status = 'checked-out' THEN 1 END) as completed_checkins,
+        COUNT(CASE WHEN c.status = 'checked_in' THEN 1 END) as active_checkins,
+        COUNT(CASE WHEN c.status = 'checked_out' THEN 1 END) as completed_checkins,
         COUNT(DISTINCT c.event_id) as unique_events,
         AVG(CASE 
             WHEN c.checkout_time IS NOT NULL 
             THEN TIMESTAMPDIFF(MINUTE, c.checkin_time, c.checkout_time)
             ELSE NULL
         END) as avg_duration_minutes,
-        AVG(TIMESTAMPDIFF(MINUTE, e.start_time, c.checkin_time)) as avg_delay_minutes
-    FROM CheckIn c
-    JOIN Events e ON c.event_id = e.event_id
+        AVG(TIMESTAMPDIFF(MINUTE, TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')), c.checkin_time)) as avg_delay_minutes
+    FROM checkin c
+    JOIN events e ON c.event_id = e.event_id
     WHERE c.user_id = ?
 ";
 $stmt = $db->prepare($stats_sql);
@@ -137,12 +137,10 @@ $stats = $stmt->fetch();
     <?php include '../includes/navigation.php'; ?>
     
     <div class="main-content">
-        <div class="checkins-header">
-            <div>
-                <h1>🕒 My Check-ins</h1>
-                <p class="subtitle">Your personal check-in history and statistics</p>
-            </div>
-            <div class="export-section">
+        <div style="text-align: center;">
+            <h1>🕒 My Check-ins</h1>
+            <p class="subtitle">Your personal check-in history and statistics</p>
+            <div class="export-section" style="margin-top: 15px;">
                 <a href="?export=csv&<?php echo http_build_query($_GET); ?>" class="btn btn-secondary">
                     📊 Export CSV
                 </a>
@@ -203,8 +201,8 @@ $stats = $stmt->fetch();
                         <label for="status">Status</label>
                         <select name="status" id="status">
                             <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
-                            <option value="checked-in" <?php echo $status_filter === 'checked-in' ? 'selected' : ''; ?>>Checked In</option>
-                            <option value="checked-out" <?php echo $status_filter === 'checked-out' ? 'selected' : ''; ?>>Checked Out</option>
+                            <option value="checked_in" <?php echo $status_filter === 'checked_in' ? 'selected' : ''; ?>>Checked In</option>
+                            <option value="checked_out" <?php echo $status_filter === 'checked_out' ? 'selected' : ''; ?>>Checked Out</option>
                         </select>
                     </div>
                     
@@ -217,7 +215,7 @@ $stats = $stmt->fetch();
                     <div class="filter-group">
                         <label>&nbsp;</label>
                         <button type="submit" class="btn btn-primary">Filter</button>
-                        <a href="my-checkins.php" class="btn btn-secondary">Clear</a>
+                        <a href="check-ins.php" class="btn btn-secondary">Clear</a>
                     </div>
                 </div>
             </form>
@@ -252,8 +250,8 @@ $stats = $stmt->fetch();
                             </div>
                             <div>
                                 <span class="status-badge status-<?php echo $checkin['status']; ?>">
-                                    <?php echo $checkin['status'] === 'checked-in' ? '✅' : '⏱️'; ?>
-                                    <?php echo ucfirst(str_replace('-', ' ', $checkin['status'])); ?>
+                                    <?php echo $checkin['status'] === 'checked_in' ? '✅' : '⏱️'; ?>
+                                    <?php echo ucfirst(str_replace('_', ' ', $checkin['status'])); ?>
                                 </span>
                             </div>
                         </div>
@@ -284,7 +282,7 @@ $stats = $stmt->fetch();
                         </div>
                         
                         <?php if ($checkin['description']): ?>
-                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(-- text-secondary);">
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
                                 <?php echo htmlspecialchars($checkin['description']); ?>
                             </div>
                         <?php endif; ?>
@@ -350,19 +348,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             c.checkin_time,
             c.checkout_time,
             c.status,
-            c.method,
+            c.checkin_method as method,
             e.name as event_name,
             e.location,
-            e.start_time,
-            e.end_time,
-            TIMESTAMPDIFF(MINUTE, e.start_time, c.checkin_time) as checkin_delay_minutes,
+            TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')) as start_time,
+            TIMESTAMP(COALESCE(e.end_date, CURDATE()), COALESCE(e.end_time, '23:59:59')) as end_time,
+            TIMESTAMPDIFF(MINUTE, TIMESTAMP(COALESCE(e.start_date, CURDATE()), COALESCE(e.start_time, '00:00:00')), c.checkin_time) as checkin_delay_minutes,
             CASE 
                 WHEN c.checkout_time IS NOT NULL 
                 THEN TIMESTAMPDIFF(MINUTE, c.checkin_time, c.checkout_time)
                 ELSE NULL
             END as duration_minutes
-        FROM CheckIn c
-        JOIN Events e ON c.event_id = e.event_id
+        FROM checkin c
+        JOIN events e ON c.event_id = e.event_id
         WHERE $where_clause
         ORDER BY c.checkin_time DESC
     ";

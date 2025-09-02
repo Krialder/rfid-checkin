@@ -1,7 +1,32 @@
 <?php
 /**
  * Account Settings
- * Password change, notification preferences, and security settings
+ * Password change, notification prefe} catch (PDO} catch (PDOException $e) {
+    error_log("User settings fetch error: " . $e->getMessage());
+    // Use default settings on error
+    $settings = [
+        'email_notifications' => 1,
+        'sms_notifications' => 0,
+        'event_reminders' => 1,
+        'profile_visibility' => 'public',
+        'share_analytics' => 0
+    ];
+}
+
+// Get recent login history
+$stmt = $db->prepare("e) {
+    error_log("User settings fetch error: " . $e->getMessage());
+    // Use default settings on error
+    $settings = [
+        'email_notifications' => 1,
+        'sms_notifications' => 0,
+        'event_reminders' => 1,
+        'profile_visibility' => 'public',
+        'share_analytics' => 0
+    ];
+}
+
+// Get recent login historyy settings
  */
 
 require_once '../core/auth.php';
@@ -48,46 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get user settings
+// Get user settings from preferences JSON field
 try {
-    $stmt = $db->prepare("
-        SELECT 
-            email_notifications,
-            sms_notifications,
-            event_reminders,
-            profile_visibility,
-            share_analytics
-        FROM user_settings 
-        WHERE user_id = ?
-    ");
+    $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
     $stmt->execute([$user['user_id']]);
-    $settings = $stmt->fetch(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log("User settings fetch error: " . $e->getMessage());
-    $settings = null;
-}
-
-// Create default settings if they don't exist
-if (!$settings) {
-    try {
-        $stmt = $db->prepare("
-            INSERT INTO user_settings (
-                user_id, email_notifications, sms_notifications, 
-                event_reminders, profile_visibility, share_analytics
-            ) VALUES (?, 1, 0, 1, 'public', 0)
-        ");
-        $stmt->execute([$user['user_id']]);
-        
-        $settings = [
-            'email_notifications' => 1,
-            'sms_notifications' => 0,
-            'event_reminders' => 1,
-            'profile_visibility' => 'public',
-            'share_analytics' => 0
-        ];
-    } catch (PDOException $e) {
-        error_log("User settings creation error: " . $e->getMessage());
-        // Use default values if table doesn't exist
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Parse preferences JSON or create default settings
+    if ($result && $result['preferences']) {
+        $settings = json_decode($result['preferences'], true);
+    } else {
         $settings = [
             'email_notifications' => 1,
             'sms_notifications' => 0,
@@ -96,6 +91,16 @@ if (!$settings) {
             'share_analytics' => 0
         ];
     }
+} catch (PDOException $e) {
+    error_log("User settings fetch error: " . $e->getMessage());
+    // Use default settings on error
+    $settings = [
+        'email_notifications' => 1,
+        'sms_notifications' => 0,
+        'event_reminders' => 1,
+        'profile_visibility' => 'public',
+        'share_analytics' => 0
+    ];
 }
 
 // Get recent login history
@@ -167,12 +172,21 @@ function updateNotificationSettings($db, $user_id, $data) {
         $sms_notifications = isset($data['sms_notifications']) ? 1 : 0;
         $event_reminders = isset($data['event_reminders']) ? 1 : 0;
         
-        $stmt = $db->prepare("
-            UPDATE user_settings 
-            SET email_notifications = ?, sms_notifications = ?, event_reminders = ?
-            WHERE user_id = ?
-        ");
-        $stmt->execute([$email_notifications, $sms_notifications, $event_reminders, $user_id]);
+        // Get current preferences
+        $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $preferences = $result && $result['preferences'] ? json_decode($result['preferences'], true) : [];
+        
+        // Update notification settings
+        $preferences['email_notifications'] = $email_notifications;
+        $preferences['sms_notifications'] = $sms_notifications;
+        $preferences['event_reminders'] = $event_reminders;
+        
+        // Save back to database
+        $stmt = $db->prepare("UPDATE Users SET preferences = ? WHERE user_id = ?");
+        $stmt->execute([json_encode($preferences), $user_id]);
         
         return ['success' => true, 'message' => 'Notification settings updated successfully!'];
         
@@ -192,12 +206,20 @@ function updatePrivacySettings($db, $user_id, $data) {
             return ['success' => false, 'message' => 'Invalid profile visibility setting.'];
         }
         
-        $stmt = $db->prepare("
-            UPDATE user_settings 
-            SET profile_visibility = ?, share_analytics = ?
-            WHERE user_id = ?
-        ");
-        $stmt->execute([$profile_visibility, $share_analytics, $user_id]);
+        // Get current preferences
+        $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $preferences = $result && $result['preferences'] ? json_decode($result['preferences'], true) : [];
+        
+        // Update privacy settings
+        $preferences['profile_visibility'] = $profile_visibility;
+        $preferences['share_analytics'] = $share_analytics;
+        
+        // Save back to database
+        $stmt = $db->prepare("UPDATE Users SET preferences = ? WHERE user_id = ?");
+        $stmt->execute([json_encode($preferences), $user_id]);
         
         return ['success' => true, 'message' => 'Privacy settings updated successfully!'];
         

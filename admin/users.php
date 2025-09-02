@@ -1,9 +1,40 @@
 <?php
+/**
+ * User Management Administrative Interface
+ * 
+ * Comprehensive user management system providing full CRUD operations,
+ * bulk import/export capabilities, advanced search and filtering,
+ * and role-based permission management for system administrators.
+ * 
+ * Features:
+ * - Complete user lifecycle management (Create, Read, Update, Delete)
+ * - Advanced search and filtering with real-time results
+ * - Bulk operations including CSV import/export
+ * - Role-based access control and permission management
+ * - RFID tag assignment and hardware integration
+ * - User activity tracking and audit logging
+ * - Responsive interface with pagination and sorting
+ * 
+ * Security:
+ * - Admin-only access with role verification
+ * - CSRF protection on all form submissions
+ * - Input validation and sanitization
+ * - Secure password handling and reset capabilities
+ * 
+ * @package    RFID Check-in System
+ * @subpackage Administrative Interface
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
+ * @security   ADMIN_ONLY - Requires administrative privileges
+ */
+// Load required core modules
 require_once '../core/config.php';
 require_once '../core/database.php';
 require_once '../core/auth.php';
+require_once '../core/user-group-manager.php';
 
-// Check if user is admin
+// Enforce administrative access control
 if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
     http_response_code(403);
     header('Location: ../auth/login.php');
@@ -12,6 +43,7 @@ if (!Auth::isLoggedIn() || !Auth::hasRole(['admin'])) {
 
 // Initialize database connection
 $db = getDB();
+$groupManager = new UserGroupManager();
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -304,9 +336,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $db->prepare("DELETE FROM password_resets WHERE user_id = ?");
                     $stmt->execute([$userId]);
                     
-                    // Delete from user_settings table
-                    $stmt = $db->prepare("DELETE FROM user_settings WHERE user_id = ?");
-                    $stmt->execute([$userId]);
+                    // Note: user_settings table not in current schema - using preferences JSON in Users table
+                    // No additional cleanup needed for user settings
                     
                     // Delete from AccessLogs table
                     $stmt = $db->prepare("DELETE FROM AccessLogs WHERE user_id = ?");
@@ -494,12 +525,13 @@ try {
 <body>
     <?php include '../includes/navigation.php'; ?>
     
-    <div class="admin-header">
-        <div class="container">
-            <h1>User Management</h1>
-            <p>Manage users, roles, and permissions</p>
+    <div class="main-content">
+        <div class="dashboard-header">
+            <div class="container">
+                <h1>User Management</h1>
+                <p>Manage users, roles, and permissions</p>
+            </div>
         </div>
-    </div>
     
     <div class="container">
         <!-- Statistics Cards -->

@@ -1,6 +1,27 @@
-/*
- * Dashboard JavaScript
- * Handles dynamic content loading and interactions
+/**
+ * Dashboard Management System
+ * 
+ * Comprehensive JavaScript module for managing the user dashboard interface,
+ * providing real-time data updates, interactive elements, and seamless
+ * user experience with dynamic content loading and API integration.
+ * 
+ * Features:
+ * - Real-time dashboard data loading and updates
+ * - Interactive check-in modal with form validation
+ * - Automatic data refresh and synchronization
+ * - Error handling and user feedback systems
+ * - Responsive interface management
+ * - Performance optimization with async operations
+ * 
+ * Dependencies:
+ * - Modern browser with fetch API support
+ * - Dashboard API endpoints (/api/dashboard.php)
+ * - Manual check-in API (/api/manual_checkin.php)
+ * 
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
+ * @module     Dashboard
  */
 
 class Dashboard {
@@ -86,7 +107,7 @@ class Dashboard {
                     </div>
                 </div>
                 <span class="status-badge status-${checkin.status}">
-                    ${checkin.status === 'checked-in' ? '✅' : '⏱️'} ${checkin.status}
+                    ${checkin.status === 'checked_in' ? '✅' : '⏱️'} ${checkin.status}
                 </span>
             </div>
         `).join('');
@@ -186,7 +207,7 @@ class Dashboard {
     
     async handleManualCheckIn(formData) {
         try {
-            const response = await fetch('api/manual_checkin.php', {
+            const response = await fetch('api/manual-checkin.php', {
                 method: 'POST',
                 body: formData
             });

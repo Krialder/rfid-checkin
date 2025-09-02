@@ -1,45 +1,9 @@
-/*
+/**
  * My Check-ins Page Styles
- * Dedicated styles for user check-in history and management
+ * Specialized styles for check-in history and management
  */
 
-.checkins-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.filters-section {
-    background: var(--bg-secondary);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.filters-row {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 150px;
-}
-
-.filter-group label {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-}
-
+/* Statistics Overview */
 .stats-overview {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -114,11 +78,13 @@
     letter-spacing: 0.025em;
 }
 
+.status-checked_in,
 .status-checked-in {
     background-color: #dcfce7;
     color: #15803d;
 }
 
+.status-checked_out,
 .status-checked-out {
     background-color: #fef3c7;
     color: #92400e;

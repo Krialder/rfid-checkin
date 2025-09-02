@@ -37,37 +37,81 @@ try {
     
     $db->beginTransaction();
     
+    // Check if registration mode is enabled
+    $stmt = $db->prepare("
+        SELECT setting_value 
+        FROM system_settings 
+        WHERE setting_key = 'rfid_registration_mode'
+    ");
+    $stmt->execute();
+    $registration_mode = $stmt->fetch();
+    $is_registration_mode = $registration_mode && (bool)$registration_mode['setting_value'];
+    
     // Check if RFID exists and get user info
     $stmt = $db->prepare("
         SELECT user_id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as name, is_active 
-        FROM Users 
+        FROM users 
         WHERE rfid_tag = ? AND is_active = 1
     ");
     $stmt->execute([$rfid]);
     $user = $stmt->fetch();
     
     if (!$user) {
-        // Log failed attempt
-        $stmt = $db->prepare("
-            INSERT INTO AccessLogs (rfid_tag, device_id, ip_address, action, status, details, timestamp) 
-            VALUES (?, ?, ?, 'failed_login', 'failed', ?, NOW())
-        ");
-        $stmt->execute([$rfid, $device_id, $ip_address, json_encode(['error' => 'RFID not recognized'])]);
+        // Log failed attempt with NULL user_id (should work after database fix)
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO accesslogs (user_id, device_id, ip_address, action, status, resource, timestamp) 
+                VALUES (NULL, ?, ?, 'rfid_scan', 'failure', ?, NOW())
+            ");
+            $stmt->execute([$device_id, $ip_address, "RFID: $rfid"]);
+        } catch (PDOException $logError) {
+            // If foreign key constraint fails, log without user_id column
+            error_log('AccessLogs constraint error: ' . $logError->getMessage());
+            try {
+                $stmt = $db->prepare("
+                    INSERT INTO accesslogs (device_id, ip_address, action, status, resource, timestamp) 
+                    VALUES (?, ?, 'rfid_scan', 'failure', ?, NOW())
+                ");
+                $stmt->execute([$device_id, $ip_address, "RFID: $rfid"]);
+            } catch (PDOException $fallbackError) {
+                // If even that fails, just continue without logging
+                error_log('AccessLogs fallback failed: ' . $fallbackError->getMessage());
+            }
+        }
         
         $db->commit();
         
-        http_response_code(404);
-        echo json_encode([
-            'error' => 'RFID not recognized',
-            'rfid' => $rfid
-        ]);
-        exit();
+        if ($is_registration_mode) {
+            // In registration mode, accept unregistered RFID tags
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'RFID scanned for registration',
+                'action' => 'registration',
+                'rfid' => $rfid,
+                'registration_mode' => true,
+                'user' => [
+                    'name' => 'Unregistered User',
+                    'user_id' => null
+                ],
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            exit();
+        } else {
+            http_response_code(404);
+            echo json_encode([
+                'error' => 'RFID not recognized',
+                'rfid' => $rfid,
+                'registration_mode' => false
+            ]);
+            exit();
+        }
     }
     
     // Check for current active events
     $stmt = $db->prepare("
         SELECT event_id, name as event_name, location 
-        FROM Events 
+        FROM events 
         WHERE DATE(start_time) = CURDATE() 
         AND start_time <= NOW() 
         AND end_time >= NOW() 
@@ -81,7 +125,7 @@ try {
     if (!$current_event) {
         // Log attempt but no event
         $stmt = $db->prepare("
-            INSERT INTO AccessLogs (user_id, rfid_tag, device_id, ip_address, action, status, details, timestamp) 
+            INSERT INTO accesslogs (user_id, rfid_tag, device_id, ip_address, action, status, details, timestamp) 
             VALUES (?, ?, ?, ?, 'failed_login', 'failed', ?, NOW())
         ");
         $stmt->execute([$user['user_id'], $rfid, $device_id, $ip_address, json_encode(['error' => 'No active event found'])]);
@@ -99,7 +143,7 @@ try {
     // Check if user is already checked in to this event
     $stmt = $db->prepare("
         SELECT checkin_id, status 
-        FROM CheckIn 
+        FROM checkin 
         WHERE user_id = ? AND event_id = ? AND DATE(checkin_time) = CURDATE()
         ORDER BY checkin_time DESC 
         LIMIT 1
@@ -107,11 +151,11 @@ try {
     $stmt->execute([$user['user_id'], $current_event['event_id']]);
     $existing_checkin = $stmt->fetch();
     
-    if ($existing_checkin && $existing_checkin['status'] === 'checked-in') {
+    if ($existing_checkin && $existing_checkin['status'] === 'checked_in') {
         // User is checking out
         $stmt = $db->prepare("
-            UPDATE CheckIn 
-            SET checkout_time = NOW(), status = 'checked-out', updated_at = NOW()
+            UPDATE checkin 
+            SET checkout_time = NOW(), status = 'checked_out', updated_at = NOW()
             WHERE checkin_id = ?
         ");
         $stmt->execute([$existing_checkin['checkin_id']]);
@@ -119,37 +163,25 @@ try {
         $action = 'checkout';
         $message = 'Successfully checked out';
         
-        // Update event participant count
-        $stmt = $db->prepare("
-            UPDATE Events 
-            SET current_participants = GREATEST(0, current_participants - 1)
-            WHERE event_id = ?
-        ");
-        $stmt->execute([$current_event['event_id']]);
+        // Note: current_participants column removed - calculated dynamically
         
     } else {
         // User is checking in (new or re-entry)
         $stmt = $db->prepare("
-            INSERT INTO CheckIn (user_id, event_id, checkin_time, method, device_id, ip_address, status) 
-            VALUES (?, ?, NOW(), 'rfid', ?, ?, 'checked-in')
+            INSERT INTO checkin (user_id, event_id, checkin_time, checkin_method, device_id, ip_address, status) 
+            VALUES (?, ?, NOW(), 'rfid', ?, ?, 'checked_in')
         ");
         $stmt->execute([$user['user_id'], $current_event['event_id'], $device_id, $ip_address]);
         
         $action = 'checkin';
         $message = 'Successfully checked in';
         
-        // Update event participant count
-        $stmt = $db->prepare("
-            UPDATE Events 
-            SET current_participants = current_participants + 1
-            WHERE event_id = ?
-        ");
-        $stmt->execute([$current_event['event_id']]);
+        // Note: current_participants column removed - calculated dynamically
     }
     
     // Log successful access
     $stmt = $db->prepare("
-        INSERT INTO AccessLogs (user_id, rfid_tag, device_id, ip_address, action, status, details, timestamp) 
+        INSERT INTO accesslogs (user_id, rfid_tag, device_id, ip_address, action, status, details, timestamp) 
         VALUES (?, ?, ?, ?, ?, 'success', ?, NOW())
     ");
     $stmt->execute([
@@ -179,7 +211,7 @@ try {
     ]);
     
 } catch (Exception $e) {
-    if ($db->getConnection()->inTransaction()) {
+    if ($db->inTransaction()) {
         $db->rollback();
     }
     error_log('RFID Handler Error: ' . $e->getMessage());
@@ -187,6 +219,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'error' => 'Check-in failed',
-        'message' => DEBUG_MODE ? $e->getMessage() : 'Internal server error'
+        'message' => (defined('DEBUG_MODE') && DEBUG_MODE) ? $e->getMessage() : 'Internal server error'
     ]);
 }

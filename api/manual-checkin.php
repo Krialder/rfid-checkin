@@ -30,8 +30,8 @@ try {
     
     // Verify event exists and is active
     $stmt = $db->prepare("
-        SELECT event_id, name as event_name, location, start_time, end_time, capacity, current_participants
-        FROM Events 
+        SELECT event_id, name as event_name, location, start_date, end_date, start_time, end_time, capacity
+        FROM events 
         WHERE event_id = ? AND active = 1
     ");
     $stmt->execute([$event_id]);
@@ -43,13 +43,21 @@ try {
     
     // Check if event is currently active (optional - allow future/past manual check-ins)
     $now = new DateTime();
-    $start_time = new DateTime($event['start_time']);
-    $end_time = new DateTime($event['end_time']);
+    if ($event['start_date'] && $event['start_time']) {
+        $start_datetime = new DateTime($event['start_date'] . ' ' . $event['start_time']);
+    } elseif ($event['start_date']) {
+        $start_datetime = new DateTime($event['start_date'] . ' 00:00:00');
+    }
+    if ($event['end_date'] && $event['end_time']) {
+        $end_datetime = new DateTime($event['end_date'] . ' ' . $event['end_time']);
+    } elseif ($event['end_date']) {
+        $end_datetime = new DateTime($event['end_date'] . ' 23:59:59');
+    }
     
     // Check if user is already checked in
     $stmt = $db->prepare("
         SELECT checkin_id, status
-        FROM CheckIn 
+        FROM checkin 
         WHERE user_id = ? AND event_id = ? AND DATE(checkin_time) = CURDATE()
         ORDER BY checkin_time DESC 
         LIMIT 1
@@ -57,35 +65,33 @@ try {
     $stmt->execute([$user['user_id'], $event_id]);
     $existing_checkin = $stmt->fetch();
     
-    if ($existing_checkin && $existing_checkin['status'] === 'checked-in') {
+    if ($existing_checkin && $existing_checkin['status'] === 'checked_in') {
         throw new Exception('You are already checked in to this event');
     }
     
-    // Check capacity if specified
-    if ($event['capacity'] > 0 && $event['current_participants'] >= $event['capacity']) {
-        throw new Exception('Event is at full capacity');
+    // Check capacity if specified (calculate current participants dynamically)
+    if ($event['capacity'] > 0) {
+        $stmt = $db->prepare("SELECT COUNT(*) as current_count FROM checkin WHERE event_id = ? AND status = 'checked_in'");
+        $stmt->execute([$event_id]);
+        $current_participants = $stmt->fetch()['current_count'];
+        
+        if ($current_participants >= $event['capacity']) {
+            throw new Exception('Event is at full capacity');
+        }
     }
     
     // Create manual check-in
     $stmt = $db->prepare("
-        INSERT INTO CheckIn (user_id, event_id, checkin_time, method, ip_address, status) 
-        VALUES (?, ?, NOW(), 'manual', ?, 'checked-in')
+        INSERT INTO checkin (user_id, event_id, checkin_time, checkin_method, ip_address, status) 
+        VALUES (?, ?, NOW(), 'manual', ?, 'checked_in')
     ");
     $stmt->execute([$user['user_id'], $event_id, $_SERVER['REMOTE_ADDR']]);
-    
+
     $checkin_id = $db->lastInsertId();
-    
-    // Update event participant count
-    $stmt = $db->prepare("
-        UPDATE Events 
-        SET current_participants = current_participants + 1
-        WHERE event_id = ?
-    ");
-    $stmt->execute([$event_id]);
-    
+
     // Log the activity
     $stmt = $db->prepare("
-        INSERT INTO ActivityLog (user_id, action, details, timestamp) 
+        INSERT INTO activitylog (user_id, action, details, timestamp) 
         VALUES (?, 'manual_checkin', ?, NOW())
     ");
     $stmt->execute([

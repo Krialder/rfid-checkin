@@ -438,7 +438,7 @@ $db = getDB();
                     <ul style="list-style: none; padding: 0;">
                         <li style="margin-bottom: 0.5rem;"><a href="dashboard.php">Dashboard</a></li>
                         <li style="margin-bottom: 0.5rem;"><a href="events.php">Events</a></li>
-                        <li style="margin-bottom: 0.5rem;"><a href="my-checkins.php">My Check-ins</a></li>
+                        <li style="margin-bottom: 0.5rem;"><a href="check-ins.php">My Check-ins</a></li>
                         <li style="margin-bottom: 0.5rem;"><a href="profile.php">Profile</a></li>
                         <li style="margin-bottom: 0.5rem;"><a href="account-settings.php">Settings</a></li>
                         <?php if (Auth::hasRole(['admin'])): ?>

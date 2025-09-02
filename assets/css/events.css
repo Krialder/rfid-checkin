@@ -1,25 +1,39 @@
-/*
+/**
  * Events Page Styles
- * Dedicated styles for events listing and management
+ * Specialized styles for events listing and management
  */
 
-.events-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
+/* Event-specific stats overview */
+.stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+    margin-bottom: 2rem;
 }
 
+/* Event-specific card modifications */
+.card.event-past {
+    opacity: 0.7;
+}
+
+.card.event-current {
+    border-left: 4px solid var(--success-color);
+}
+
+.card.event-upcoming {
+    border-left: 4px solid var(--primary-color);
+}
+
+/* View tabs for event filtering */
 .view-tabs {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.25rem;
     background: var(--bg-secondary);
-    padding: 0.5rem;
+    padding: 0.25rem;
     border-radius: 50px;
     margin-bottom: 2rem;
     flex-wrap: wrap;
+    border: 1px solid var(--border-color);
 }
 
 .view-tab {
@@ -32,47 +46,23 @@
     transition: all 0.2s ease;
     text-decoration: none;
     font-weight: 500;
+    font-size: 0.875rem;
+    white-space: nowrap;
 }
 
 .view-tab.active {
     background: var(--primary-color);
-    color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: var(--text-light);
+    box-shadow: var(--shadow-sm);
 }
 
 .view-tab:hover:not(.active) {
-    background: var(--bg-tertiary);
+    background: var(--hover-bg);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
-.filters-section {
-    background: var(--bg-secondary);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    margin-bottom: 2rem;
-}
-
-.filters-row {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 200px;
-}
-
-.filter-group label {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-}
-
+/* Event grid layout - fallback for event-specific grids */
 .events-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -80,6 +70,7 @@
     margin-bottom: 2rem;
 }
 
+/* Legacy event-card styling for backwards compatibility */
 .event-card {
     background: var(--bg-primary);
     border-radius: var(--radius-md);
@@ -280,6 +271,11 @@
         min-width: auto;
     }
     
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
     .events-grid {
         grid-template-columns: 1fr;
     }
@@ -293,6 +289,26 @@
         flex-direction: column;
         align-items: stretch;
         gap: 1rem;
+    }
+    
+    .stats-overview {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .view-tabs {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .view-tab {
+        padding: 0.5rem 1rem;
     }
 }
 

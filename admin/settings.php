@@ -1,6 +1,6 @@
 <?php
 /**
- * System Settings - Placeholder
+ * System Settings
  * System-wide configuration and settings management
  */
 
@@ -112,11 +112,8 @@ $user = Auth::getCurrentUser();
                     <button class="btn btn-secondary" onclick="alert('Feature coming soon!')">
                         🗄️ Database Maintenance
                     </button>
-                    <a href="../admin_dev_tools.php" class="btn btn-info">
-                        🛠️ Database Inspector
-                    </a>
-                    <a href="../system_test.php" class="btn btn-primary">
-                        🧪 System Test
+                    <a href="../database/validate-database.php" class="btn btn-primary">
+                        🔍 Database Validator
                     </a>
                 </div>
             </div>

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$user['user_id'], $token, $expires]);
                 
                 // Create reset URL
-                $resetUrl = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/auth/reset_password.php?token=" . $token;
+                $resetUrl = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/auth/reset-password.php?token=" . $token;
                 
                 // Email content
                 $subject = "Password Reset Request - Electronic Check-in System";
