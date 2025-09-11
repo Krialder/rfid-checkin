@@ -74,7 +74,7 @@ $sql = "
     SELECT 
         e.*,
         CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
-        (SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'checked_in') as current_participants,
+        (SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'present') as current_participants,
         CASE 
             WHEN c.checkin_id IS NOT NULL THEN c.status
             ELSE NULL
@@ -82,7 +82,7 @@ $sql = "
         c.checkin_time as user_checkin_time,
         (CASE 
             WHEN e.capacity > 0 THEN 
-                ((SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'checked_in') / e.capacity * 100)
+                ((SELECT COUNT(*) FROM checkin ci WHERE ci.event_id = e.event_id AND ci.status = 'present') / e.capacity * 100)
             ELSE 0
         END) as capacity_percentage
     FROM events e

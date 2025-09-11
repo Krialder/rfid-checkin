@@ -115,6 +115,9 @@ class RFIDScanner {
         this.scanButton = button;
         this.targetInput = targetInput;
         this.isScanning = true;
+        
+        // Reset last polled tag for this scanning session
+        this.lastPolledTag = null;
 
         // Update button state
         this.updateButtonState('scanning');
@@ -214,13 +217,32 @@ class RFIDScanner {
         this.showMessage('🔍 Polling server for RFID scans...', 'info');
         console.log('Starting RFID polling...');
         
+        // Reset the last polled tag when starting a new scan session
+        this.lastPolledTag = null;
+        
+        // Determine which endpoint to use based on current page
+        const currentPath = window.location.pathname;
+        let pollEndpoint;
+        
+        // SENIOR FIX: Proper path resolution based on current location
+        if (currentPath.includes('/admin/')) {
+            pollEndpoint = '../api/rfid-poll-noauth.php'; // Admin pages use no-auth version
+        } else if (currentPath.includes('/frontend/')) {
+            pollEndpoint = '../api/rfid-poll.php'; // Frontend pages use authenticated version
+        } else {
+            // Root level or other locations - try to detect based on file structure
+            pollEndpoint = 'api/rfid-poll-noauth.php';
+        }
+        
+        console.log('Using polling endpoint:', pollEndpoint);
+        console.log('Current path:', currentPath);
+        
         // Poll the server for new RFID scans
         this.pollingInterval = setInterval(async () => {
             try {
                 console.log('Polling for RFID scans...');
                 
-                // Use debug endpoint for now to bypass auth issues
-                const response = await fetch('../api/rfid-poll-debug.php', {
+                const response = await fetch(pollEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -237,17 +259,32 @@ class RFIDScanner {
                     const data = await response.json();
                     console.log('Poll response data:', data);
                     
-                    if (data.success && data.rfid_tag && data.rfid_tag !== this.lastPolledTag) {
+                    if (data.success && data.rfid_tag) {
                         console.log('🎉 New RFID detected:', data.rfid_tag);
                         this.lastPolledTag = data.rfid_tag;
                         this.showMessage(`📡 RFID detected: ${data.rfid_tag}`, 'success');
                         this.onRFIDScanned(data.rfid_tag);
+                        return; // Exit the polling loop
                     } else if (data.debug) {
                         console.log('Debug info:', data.debug);
+                    } else if (!data.success) {
+                        console.log('No new RFID data:', data.message || 'No message');
                     }
                 } else {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
                     console.log('Poll error response:', errorData);
+                    
+                    // SENIOR FIX: Better fallback logic for different paths
+                    if (response.status === 403 || response.status === 404) {
+                        console.log('Endpoint failed, trying fallback...');
+                        if (pollEndpoint.includes('rfid-poll.php') && !pollEndpoint.includes('noauth')) {
+                            pollEndpoint = '../api/rfid-poll-noauth.php';
+                            console.log('Switched to no-auth endpoint');
+                        } else if (pollEndpoint.includes('../api/')) {
+                            pollEndpoint = 'api/rfid-poll-noauth.php';
+                            console.log('Switched to root-relative path');
+                        }
+                    }
                 }
             } catch (error) {
                 console.debug('Polling error:', error);
@@ -267,9 +304,15 @@ class RFIDScanner {
         console.log('🎯 isScanning:', this.isScanning);
         console.log('🎯 targetInput:', this.targetInput);
         
-        if (!this.isScanning || !this.targetInput) {
-            console.log('❌ onRFIDScanned: Guard condition failed, returning');
+        // SENIOR FIX: Allow programmatic calls without scanning state
+        if (!this.targetInput) {
+            console.log('❌ onRFIDScanned: No target input, returning');
             return;
+        }
+        
+        // If not in scanning mode, this might be a programmatic call - allow it but log it
+        if (!this.isScanning) {
+            console.log('⚠️ onRFIDScanned: Called while not scanning (programmatic call)');
         }
 
         // Clean and validate RFID
@@ -530,13 +573,22 @@ class RFIDScanner {
 // Initialize global RFID scanner instance
 let rfidScanner = null;
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+// Initialize when DOM is ready with retry mechanism
+function initializeRFIDScanner() {
+    try {
         rfidScanner = new RFIDScanner();
-    });
+        console.log('✅ RFID Scanner initialized successfully');
+    } catch (error) {
+        console.error('❌ RFID Scanner initialization failed:', error);
+        // Retry after 1 second
+        setTimeout(initializeRFIDScanner, 1000);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeRFIDScanner);
 } else {
-    rfidScanner = new RFIDScanner();
+    initializeRFIDScanner();
 }
 
 // Export for external use

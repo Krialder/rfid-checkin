@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->beginTransaction();
         
         // Check if email or username already exists
-        $stmt = $db->prepare("SELECT user_id FROM Users WHERE email = ? OR username = ?");
+        $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? OR username = ?");
         $stmt->execute([$email, $username]);
         if ($stmt->fetch()) {
             throw new Exception('Email address or username is already registered');
@@ -259,23 +259,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-group">
                             <label for="rfid_tag">RFID Tag</label>
                             <div class="rfid-input-group">
-                                <input type="text" id="rfid_tag" name="rfid_tag" 
+                                <input type="text" 
+                                       id="rfid_tag" 
+                                       name="rfid_tag" 
                                        value="<?php echo htmlspecialchars($_GET['rfid_tag'] ?? ''); ?>"
-                                       pattern="[A-Za-z0-9]{6,20}" 
-                                       title="6-20 characters, letters and numbers only"
-                                       placeholder="Enter RFID tag or scan below"
-                                       autocomplete="new-password"
-                                       autocorrect="off"
-                                       autocapitalize="off"
-                                       spellcheck="false"
-                                       role="textbox">
-                                <button type="button" class="btn btn-primary btn-scan-rfid" 
-                                        data-rfid-scan data-rfid-target="rfid_tag"
-                                        title="Scan RFID tag using connected reader (Ctrl+R)">
+                                       placeholder="Enter RFID tag (optional)"
+                                       maxlength="20">
+                                <button type="button" 
+                                        id="scan-rfid-btn" 
+                                        class="btn btn-primary"
+                                        title="Scan RFID tag">
                                     📡 Scan RFID
                                 </button>
                             </div>
-                            <small class="form-help">You can manually enter the RFID tag or use the scan button if you have an RFID reader connected.</small>
+                            <small class="form-help">Enter RFID tag manually or click scan button.</small>
                         </div>
                     </div>
                     
@@ -311,7 +308,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php include '../includes/theme_script.php'; ?>
     
-    <script src="../assets/js/rfid-scanner.js"></script>
     <script>
         // Password confirmation validation
         document.getElementById('password2').addEventListener('input', function() {
@@ -325,54 +321,127 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // RFID tag validation
+        // Simple RFID input handling
         document.getElementById('rfid_tag').addEventListener('input', function() {
+            // Convert to uppercase for consistency
             this.value = this.value.toUpperCase();
         });
         
-        // Debug logging for RFID scanner
-        console.log('🧪 RFID Scanner Debug Mode Active');
-        
-        // Override console.log to show messages on page
-        const originalLog = console.log;
-        const debugDiv = document.createElement('div');
-        debugDiv.id = 'debug-console';
-        debugDiv.style.cssText = `
-            position: fixed; 
-            bottom: 10px; 
-            right: 10px; 
-            width: 400px; 
-            max-height: 200px; 
-            background: rgba(0,0,0,0.8); 
-            color: white; 
-            padding: 10px; 
-            border-radius: 5px; 
-            font-family: monospace; 
-            font-size: 11px; 
-            overflow-y: auto; 
-            z-index: 10000;
-            display: none;
-        `;
-        document.body.appendChild(debugDiv);
-        
-        // Show debug console when RFID scanning starts
-        let debugMode = false;
-        document.addEventListener('click', function(e) {
-            if (e.target.matches('[data-rfid-scan]')) {
-                debugMode = true;
-                debugDiv.style.display = 'block';
-                debugDiv.innerHTML = '<strong>🧪 RFID Debug Console</strong><br>';
+        // Simple RFID scanning functionality
+        class SimpleRFIDScanner {
+            constructor() {
+                this.isScanning = false;
+                this.init();
             }
+            
+            init() {
+                document.getElementById('scan-rfid-btn').addEventListener('click', () => {
+                    this.toggleScanning();
+                });
+            }
+            
+            toggleScanning() {
+                const button = document.getElementById('scan-rfid-btn');
+                const input = document.getElementById('rfid_tag');
+                
+                if (!this.isScanning) {
+                    // Start scanning
+                    this.isScanning = true;
+                    button.textContent = '⏹️ Stop Scanning';
+                    button.classList.add('btn-danger');
+                    button.classList.remove('btn-primary');
+                    
+                    this.showMessage('RFID Scanner ready. Scan a tag or click "Stop Scanning" to enter manually.', 'info');
+                    this.startPolling();
+                } else {
+                    // Stop scanning and allow manual entry
+                    this.stopScanning();
+                    const manualRFID = prompt('Enter RFID tag manually:');
+                    if (manualRFID && manualRFID.trim()) {
+                        input.value = manualRFID.trim().toUpperCase();
+                        this.showMessage(`RFID entered: ${input.value}`, 'success');
+                    }
+                }
+            }
+            
+            startPolling() {
+                // Simple polling for RFID scans
+                this.pollInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch('../api/rfid-poll-noauth.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ last_tag: '', timeout: 1000 })
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.rfid_tag) {
+                                document.getElementById('rfid_tag').value = data.rfid_tag;
+                                this.showMessage(`RFID scanned: ${data.rfid_tag}`, 'success');
+                                this.stopScanning();
+                            }
+                        }
+                    } catch (error) {
+                        // Ignore polling errors
+                    }
+                }, 1000);
+                
+                // Auto-stop after 30 seconds
+                setTimeout(() => {
+                    if (this.isScanning) {
+                        this.stopScanning();
+                        this.showMessage('Scan timeout. You can enter RFID manually or try scanning again.', 'warning');
+                    }
+                }, 30000);
+            }
+            
+            stopScanning() {
+                this.isScanning = false;
+                const button = document.getElementById('scan-rfid-btn');
+                button.textContent = '📡 Scan RFID';
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-primary');
+                
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
+            }
+            
+            showMessage(message, type) {
+                // Create simple notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 16px;
+                    border-radius: 4px;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 10000;
+                    max-width: 300px;
+                    ${type === 'success' ? 'background: #28a745;' : ''}
+                    ${type === 'error' ? 'background: #dc3545;' : ''}
+                    ${type === 'warning' ? 'background: #ffc107; color: black;' : ''}
+                    ${type === 'info' ? 'background: #17a2b8;' : ''}
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 5000);
+            }
+        }
+        
+        // Initialize RFID scanner when page loads
+        window.addEventListener('load', () => {
+            new SimpleRFIDScanner();
         });
-        
-        console.log = function(...args) {
-            originalLog.apply(console, args);
-            if (debugMode) {
-                const timestamp = new Date().toLocaleTimeString();
-                debugDiv.innerHTML += `[${timestamp}] ${args.join(' ')}<br>`;
-                debugDiv.scrollTop = debugDiv.scrollHeight;
-            }
-        };
     </script>
 </body>
 </html>

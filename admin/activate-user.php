@@ -32,7 +32,7 @@ try {
     
     // Find and activate the user
     $stmt = $db->prepare("
-        UPDATE Users 
+        UPDATE users 
         SET is_active = 1, deleted_at = NULL, updated_at = NOW()
         WHERE $field = ? AND is_active = 0
     ");
@@ -46,7 +46,7 @@ try {
         
         // Log the activity
         $stmt = $db->prepare("
-            INSERT INTO ActivityLog (user_id, action, details, ip_address, timestamp) 
+            INSERT INTO activitylog (user_id, action, details, ip_address, timestamp) 
             VALUES (?, 'user_activation', ?, ?, NOW())
         ");
         $stmt->execute([
@@ -57,7 +57,7 @@ try {
         
     } else {
         // Check if user exists but is already active
-        $stmt = $db->prepare("SELECT is_active FROM Users WHERE $field = ?");
+        $stmt = $db->prepare("SELECT is_active FROM users WHERE $field = ?");
         $stmt->execute([$identifier]);
         $user = $stmt->fetch();
         

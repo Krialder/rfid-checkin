@@ -73,11 +73,11 @@ try {
     ];
     
     // Event statistics
-    $stmt = $db->query("SELECT COUNT(*) FROM Events WHERE active = TRUE");
+    $stmt = $db->query("SELECT COUNT(*) FROM events WHERE active = TRUE");
     $stats['total_events'] = $stmt->fetchColumn();
     
     $stmt = $db->query("
-        SELECT COUNT(*) FROM Events 
+        SELECT COUNT(*) FROM events 
         WHERE active = TRUE 
         AND (
             (is_recurring = 0 AND start_date >= CURDATE()) OR
@@ -86,11 +86,11 @@ try {
     ");
     $stats['active_events'] = $stmt->fetchColumn();
     
-    $stmt = $db->query("SELECT COUNT(*) FROM Events WHERE active = TRUE AND is_recurring = TRUE");
+    $stmt = $db->query("SELECT COUNT(*) FROM events WHERE active = TRUE AND is_recurring = TRUE");
     $stats['recurring_events'] = $stmt->fetchColumn();
     
     $stmt = $db->prepare("
-        SELECT COUNT(*) FROM Events 
+        SELECT COUNT(*) FROM events 
         WHERE active = TRUE AND start_date BETWEEN ? AND ?
     ");
     $stmt->execute([$startOfMonth, $endOfMonth]);
@@ -104,38 +104,38 @@ try {
     $stats['avg_group_size'] = $groupStats['avg_group_size'] ?? 0;
     
     // Holiday statistics
-    $stmt = $db->prepare("SELECT COUNT(*) FROM Holidays WHERE year = ? AND is_active = TRUE");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM holidays WHERE year = ? AND is_active = TRUE");
     $stmt->execute([$currentYear]);
     $stats['holidays_this_year'] = $stmt->fetchColumn();
     
     $stmt = $db->prepare("
-        SELECT COUNT(*) FROM Holidays 
+        SELECT COUNT(*) FROM holidays 
         WHERE date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND is_active = TRUE
     ");
     $stmt->execute();
     $stats['upcoming_holidays'] = $stmt->fetchColumn();
     
     $stmt = $db->query("
-        SELECT COUNT(*) FROM EventInstances 
+        SELECT COUNT(*) FROM eventinstances 
         WHERE is_holiday_conflict = TRUE AND instance_date >= CURDATE()
     ");
     $stats['holiday_conflicts'] = $stmt->fetchColumn();
     
     // User statistics
-    $stmt = $db->query("SELECT COUNT(*) FROM Users WHERE is_active = TRUE");
+    $stmt = $db->query("SELECT COUNT(*) FROM users WHERE is_active = TRUE");
     $stats['total_users'] = $stmt->fetchColumn();
     
     $stmt = $db->query("
-        SELECT COUNT(DISTINCT user_id) FROM UserGroupMemberships WHERE is_active = TRUE
+        SELECT COUNT(DISTINCT user_id) FROM usergroupmemberships WHERE is_active = TRUE
     ");
     $stats['users_in_groups'] = $stmt->fetchColumn();
     
     // Check-in statistics
-    $stmt = $db->query("SELECT COUNT(*) FROM CheckIn");
+    $stmt = $db->query("SELECT COUNT(*) FROM checkin");
     $stats['total_checkins'] = $stmt->fetchColumn();
     
     $stmt = $db->prepare("
-        SELECT COUNT(*) FROM CheckIn 
+        SELECT COUNT(*) FROM checkin 
         WHERE DATE(checkin_time) BETWEEN ? AND ?
     ");
     $stmt->execute([$startOfMonth, $endOfMonth]);
@@ -150,13 +150,13 @@ try {
                GROUP_CONCAT(ug.group_name SEPARATOR ', ') as assigned_groups,
                COUNT(DISTINCT uga.group_id) as group_count,
                (SELECT COUNT(DISTINCT ugm.user_id) 
-                FROM UserGroupMemberships ugm 
-                INNER JOIN EventGroupAssignments ega2 ON ugm.group_id = ega2.group_id 
+                FROM usergroupmemberships ugm 
+                INNER JOIN eventgroupassignments ega2 ON ugm.group_id = ega2.group_id 
                 WHERE ega2.event_id = e.event_id AND ugm.is_active = TRUE AND ega2.is_active = TRUE
                ) as unique_participants
-        FROM Events e
-        INNER JOIN EventGroupAssignments uga ON e.event_id = uga.event_id
-        INNER JOIN UserGroups ug ON uga.group_id = ug.group_id
+        FROM events e
+        INNER JOIN eventgroupassignments uga ON e.event_id = uga.event_id
+        INNER JOIN usergroups ug ON uga.group_id = ug.group_id
         WHERE e.active = TRUE AND uga.is_active = TRUE
         GROUP BY e.event_id
         ORDER BY e.start_date DESC
@@ -171,9 +171,9 @@ try {
             COUNT(ugm.user_id) as total_memberships,
             COUNT(DISTINCT ugm.user_id) as unique_users,
             (COUNT(ugm.user_id) - COUNT(DISTINCT ugm.user_id)) as deduplication_savings
-        FROM Events e
-        INNER JOIN EventGroupAssignments ega ON e.event_id = ega.event_id
-        INNER JOIN UserGroupMemberships ugm ON ega.group_id = ugm.group_id
+        FROM events e
+        INNER JOIN eventgroupassignments ega ON e.event_id = ega.event_id
+        INNER JOIN usergroupmemberships ugm ON ega.group_id = ugm.group_id
         WHERE e.active = TRUE AND ega.is_active = TRUE AND ugm.is_active = TRUE
         GROUP BY e.event_id
         HAVING deduplication_savings > 0
@@ -185,8 +185,8 @@ try {
     // Get holiday conflicts
     $stmt = $db->query("
         SELECT ei.instance_date, ei.holiday_name, e.name as event_name
-        FROM EventInstances ei
-        INNER JOIN Events e ON ei.parent_event_id = e.event_id
+        FROM eventinstances ei
+        INNER JOIN events e ON ei.parent_event_id = e.event_id
         WHERE ei.is_holiday_conflict = TRUE 
         AND ei.instance_date >= CURDATE()
         ORDER BY ei.instance_date
@@ -199,7 +199,7 @@ try {
         SELECT 
             AVG(total_break_minutes) as avg_break_time,
             COUNT(*) as checkins_with_breaks
-        FROM CheckIn 
+        FROM checkin 
         WHERE total_break_minutes > 0
     ");
     $breakStats = $stmt->fetch(PDO::FETCH_ASSOC);

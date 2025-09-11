@@ -249,26 +249,26 @@ function deleteEvent($eventId, $db) {
     
     try {
         // Check if event has any check-ins
-        $stmt = $db->prepare("SELECT COUNT(*) FROM CheckIn WHERE event_id = ?");
+        $stmt = $db->prepare("SELECT COUNT(*) FROM checkin WHERE event_id = ?");
         $stmt->execute([$eventId]);
         $checkinCount = $stmt->fetchColumn();
         
         if ($checkinCount > 0) {
             // Soft delete - mark as inactive
-            $stmt = $db->prepare("UPDATE Events SET active = FALSE WHERE event_id = ?");
+            $stmt = $db->prepare("UPDATE events SET active = FALSE WHERE event_id = ?");
             $stmt->execute([$eventId]);
             $message = 'Event deactivated (has existing check-ins)';
         } else {
             // Delete event instances first
-            $stmt = $db->prepare("DELETE FROM EventInstances WHERE parent_event_id = ?");
+            $stmt = $db->prepare("DELETE FROM eventinstances WHERE parent_event_id = ?");
             $stmt->execute([$eventId]);
             
             // Delete event registrations
-            $stmt = $db->prepare("DELETE FROM EventRegistration WHERE event_id = ?");
+            $stmt = $db->prepare("DELETE FROM eventregistration WHERE event_id = ?");
             $stmt->execute([$eventId]);
             
             // Delete main event
-            $stmt = $db->prepare("DELETE FROM Events WHERE event_id = ?");
+            $stmt = $db->prepare("DELETE FROM events WHERE event_id = ?");
             $stmt->execute([$eventId]);
             $message = 'Event deleted successfully';
         }
@@ -319,7 +319,7 @@ function loadEvents($data, $db) {
     $whereClause = implode(' AND ', $where);
     
     // Get total count
-    $stmt = $db->prepare("SELECT COUNT(*) FROM Events e WHERE $whereClause");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM events e WHERE $whereClause");
     $stmt->execute($params);
     $total = $stmt->fetchColumn();
     
@@ -328,19 +328,19 @@ function loadEvents($data, $db) {
         SELECT 
             e.*,
             CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
-            (SELECT COUNT(*) FROM EventRegistration er WHERE er.event_id = e.event_id AND er.status = 'registered') as registered_count,
+            (SELECT COUNT(*) FROM eventregistration er WHERE er.event_id = e.event_id AND er.status = 'registered') as registered_count,
             CASE 
                 WHEN e.is_recurring = 1 THEN 
-                    (SELECT COUNT(*) FROM EventInstances ei WHERE ei.parent_event_id = e.event_id AND ei.instance_date > CURDATE())
+                    (SELECT COUNT(*) FROM eventinstances ei WHERE ei.parent_event_id = e.event_id AND ei.instance_date > CURDATE())
                 ELSE 1
             END as future_instances,
             CASE 
                 WHEN e.is_recurring = 1 THEN 
-                    (SELECT COUNT(*) FROM EventInstances ei WHERE ei.parent_event_id = e.event_id AND ei.is_holiday_conflict = 1)
+                    (SELECT COUNT(*) FROM eventinstances ei WHERE ei.parent_event_id = e.event_id AND ei.is_holiday_conflict = 1)
                 ELSE 0
             END as holiday_conflicts
-        FROM Events e
-        LEFT JOIN Users u ON e.created_by = u.user_id
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
         WHERE $whereClause
         ORDER BY e.start_date DESC, e.created_at DESC
         LIMIT ? OFFSET ?
@@ -368,8 +368,8 @@ function loadEventDetails($eventId, $db) {
     $stmt = $db->prepare("
         SELECT e.*, 
                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name
-        FROM Events e
-        LEFT JOIN Users u ON e.created_by = u.user_id
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
         WHERE e.event_id = ?
     ");
     $stmt->execute([$eventId]);
@@ -379,7 +379,7 @@ function loadEventDetails($eventId, $db) {
         return ['success' => false, 'error' => 'Event not found'];
     }
     
-    // Get participants from EventRegistration table
+    // Get participants from eventregistration table
     $stmt = $db->prepare("
         SELECT 
             er.*,
@@ -387,8 +387,8 @@ function loadEventDetails($eventId, $db) {
             'user' as participant_type,
             u.email,
             u.department
-        FROM EventRegistration er
-        LEFT JOIN Users u ON er.user_id = u.user_id
+        FROM eventregistration er
+        LEFT JOIN users u ON er.user_id = u.user_id
         WHERE er.event_id = ? AND er.status = 'registered'
         ORDER BY participant_name
     ");
@@ -397,7 +397,7 @@ function loadEventDetails($eventId, $db) {
     
     // Get event instances
     $stmt = $db->prepare("
-        SELECT * FROM EventInstances 
+        SELECT * FROM eventinstances 
         WHERE parent_event_id = ? 
         ORDER BY instance_date ASC
         LIMIT 50
@@ -420,7 +420,7 @@ function generateEventInstances($data, $eventManager) {
         
         if ($regenerate) {
             // Get event data and regenerate instances
-            $stmt = $eventManager->db->prepare("SELECT * FROM Events WHERE event_id = ?");
+            $stmt = $eventManager->db->prepare("SELECT * FROM events WHERE event_id = ?");
             $stmt->execute([$eventId]);
             $event = $stmt->fetch();
             
@@ -430,11 +430,11 @@ function generateEventInstances($data, $eventManager) {
             
             // Delete future instances without check-ins
             $stmt = $eventManager->db->prepare("
-                DELETE FROM EventInstances 
+                DELETE FROM eventinstances 
                 WHERE parent_event_id = ? 
                 AND instance_date > CURDATE()
                 AND instance_id NOT IN (
-                    SELECT DISTINCT instance_id FROM CheckIn WHERE instance_id IS NOT NULL
+                    SELECT DISTINCT instance_id FROM checkin WHERE instance_id IS NOT NULL
                 )
             ");
             $stmt->execute([$eventId]);
@@ -489,7 +489,7 @@ function loadUsers($data, $db) {
         SELECT u.user_id, u.username, u.email,
                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as name,
                u.department, u.position
-        FROM Users u
+        FROM users u
         WHERE $whereClause
         ORDER BY u.first_name, u.last_name
         LIMIT ?
@@ -603,9 +603,9 @@ function loadGroups($db) {
             SELECT ug.group_id, ug.group_name, ug.description, ug.group_type,
                    COUNT(ugm.user_id) as member_count,
                    CONCAT(creator.first_name, ' ', creator.last_name) as created_by_name
-            FROM UserGroups ug
-            LEFT JOIN UserGroupMemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
-            LEFT JOIN Users creator ON ug.created_by = creator.user_id
+            FROM usergroups ug
+            LEFT JOIN usergroupmemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
+            LEFT JOIN users creator ON ug.created_by = creator.user_id
             WHERE ug.is_active = TRUE
             GROUP BY ug.group_id
             ORDER BY ug.group_name
@@ -634,7 +634,7 @@ function calculateUniqueParticipants($data, $eventManager) {
         $placeholders = str_repeat('?,', count($groupIds) - 1) . '?';
         $stmt = $db->prepare("
             SELECT COUNT(*) as total_memberships
-            FROM UserGroupMemberships ugm
+            FROM usergroupmemberships ugm
             WHERE ugm.group_id IN ($placeholders) AND ugm.is_active = TRUE
         ");
         $stmt->execute($groupIds);
@@ -643,8 +643,8 @@ function calculateUniqueParticipants($data, $eventManager) {
         // Get unique users (deduplicated)
         $stmt = $db->prepare("
             SELECT COUNT(DISTINCT ugm.user_id) as unique_count
-            FROM UserGroupMemberships ugm
-            INNER JOIN Users u ON ugm.user_id = u.user_id
+            FROM usergroupmemberships ugm
+            INNER JOIN users u ON ugm.user_id = u.user_id
             WHERE ugm.group_id IN ($placeholders) 
               AND ugm.is_active = TRUE 
               AND u.is_active = TRUE
@@ -681,12 +681,12 @@ function loadEventStats($db) {
         $stats = [];
         
         // Total events
-        $stmt = $db->query("SELECT COUNT(*) FROM Events WHERE active = TRUE");
+        $stmt = $db->query("SELECT COUNT(*) FROM events WHERE active = TRUE");
         $stats['total'] = $stmt->fetchColumn();
         
         // Active events (current or future)
         $stmt = $db->query("
-            SELECT COUNT(*) FROM Events 
+            SELECT COUNT(*) FROM events 
             WHERE active = TRUE 
             AND (
                 (is_recurring = 0 AND start_date >= CURDATE()) OR
@@ -696,12 +696,12 @@ function loadEventStats($db) {
         $stats['active'] = $stmt->fetchColumn();
         
         // Recurring events
-        $stmt = $db->query("SELECT COUNT(*) FROM Events WHERE active = TRUE AND is_recurring = TRUE");
+        $stmt = $db->query("SELECT COUNT(*) FROM events WHERE active = TRUE AND is_recurring = TRUE");
         $stats['recurring'] = $stmt->fetchColumn();
         
         // Upcoming instances
         $stmt = $db->query("
-            SELECT COUNT(*) FROM EventInstances 
+            SELECT COUNT(*) FROM eventinstances 
             WHERE instance_date > CURDATE() AND status = 'scheduled'
         ");
         $stats['upcoming_instances'] = $stmt->fetchColumn();

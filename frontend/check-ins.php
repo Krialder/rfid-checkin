@@ -103,8 +103,8 @@ $checkins = $stmt->fetchAll();
 $stats_sql = "
     SELECT 
         COUNT(*) as total_checkins,
-        COUNT(CASE WHEN c.status = 'checked_in' THEN 1 END) as active_checkins,
-        COUNT(CASE WHEN c.status = 'checked_out' THEN 1 END) as completed_checkins,
+        COUNT(CASE WHEN c.status = 'present' THEN 1 END) as active_checkins,
+        COUNT(CASE WHEN c.checkout_time IS NOT NULL THEN 1 END) as completed_checkins,
         COUNT(DISTINCT c.event_id) as unique_events,
         AVG(CASE 
             WHEN c.checkout_time IS NOT NULL 

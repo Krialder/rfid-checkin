@@ -52,7 +52,7 @@ try {
               `updated_by` INT,
               `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
               KEY `idx_setting_key` (`setting_key`),
-              FOREIGN KEY (`updated_by`) REFERENCES `Users`(`user_id`) ON DELETE SET NULL
+              FOREIGN KEY (`updated_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ";
         $db->exec($createTableSQL);

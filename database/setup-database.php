@@ -129,9 +129,9 @@ try {
     
     // List of tables to drop (in reverse dependency order)
     $tablesToDrop = [
-        'ActivityLog', 'AccessLogs', 'Reports', 'Notifications', 'SystemSettings', 'system_settings', 'rfid_scan_queue',
-        'EventGroupAssignments', 'UserGroupMemberships', 'UserGroups',
-        'EventRegistration', 'CheckIn', 'Events', 'password_resets', 'Users', 'RFIDDevices'
+        'activitylog', 'accesslogs', 'reports', 'notifications', 'system_settings', 'rfid_scan_queue',
+        'eventgroupassignments', 'usergroupmemberships', 'usergroups',
+        'eventregistration', 'checkin', 'events', 'password_resets', 'users', 'rfiddevices'
     ];
     
     foreach ($tablesToDrop as $table) {
@@ -146,9 +146,9 @@ try {
     echo "<div class='step'>";
     echo "<h2>🏗️ Creating Core Tables</h2>";
     
-    // Users table - Main user management
+    // users table - Main user management
     $usersSQL = "
-    CREATE TABLE Users (
+    CREATE TABLE users (
         user_id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
         email VARCHAR(100) NOT NULL UNIQUE,
@@ -180,7 +180,7 @@ try {
         INDEX idx_role_active (role, is_active),
         INDEX idx_active (is_active)
     ) ENGINE=InnoDB";
-    executeSQL($pdo, $usersSQL, "Users table");
+    executeSQL($pdo, $usersSQL, "users table");
     
     // Password resets table
     $passwordResetsSQL = "
@@ -194,7 +194,7 @@ try {
         user_agent TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
         INDEX idx_token (token),
         INDEX idx_user_expires (user_id, expires),
         INDEX idx_used (used)
@@ -203,7 +203,7 @@ try {
     
     // RFID Devices table
     $rfidDevicesSQL = "
-    CREATE TABLE RFIDDevices (
+    CREATE TABLE rfiddevices (
         device_id INT AUTO_INCREMENT PRIMARY KEY,
         device_name VARCHAR(100) NOT NULL,
         device_serial VARCHAR(100) UNIQUE,
@@ -223,9 +223,9 @@ try {
     ) ENGINE=InnoDB";
     executeSQL($pdo, $rfidDevicesSQL, "RFID Devices table");
     
-    // Events table - Enhanced event management with recurring events and breaks
+    // events table - Enhanced event management with recurring events and breaks
     $eventsSQL = "
-    CREATE TABLE Events (
+    CREATE TABLE events (
         event_id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(200) NOT NULL,
         description TEXT,
@@ -262,7 +262,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (created_by) REFERENCES Users(user_id) ON DELETE SET NULL,
+        FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
         INDEX idx_name (name),
         INDEX idx_type (event_type),
         INDEX idx_active (active),
@@ -270,11 +270,11 @@ try {
         INDEX idx_recurring (is_recurring, recurrence_type),
         INDEX idx_created_by (created_by)
     ) ENGINE=InnoDB";
-    executeSQL($pdo, $eventsSQL, "Enhanced Events table");
+    executeSQL($pdo, $eventsSQL, "Enhanced events table");
     
     // Event Instances table - For managing individual occurrences of recurring events
     $eventInstancesSQL = "
-    CREATE TABLE EventInstances (
+    CREATE TABLE eventinstances (
         instance_id INT AUTO_INCREMENT PRIMARY KEY,
         parent_event_id INT NOT NULL,
         instance_date DATE NOT NULL,
@@ -292,7 +292,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (parent_event_id) REFERENCES Events(event_id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_event_id) REFERENCES events(event_id) ON DELETE CASCADE,
         UNIQUE KEY unique_event_date (parent_event_id, instance_date),
         INDEX idx_date (instance_date),
         INDEX idx_datetime_range (start_datetime, end_datetime),
@@ -303,7 +303,7 @@ try {
     
     // Holidays table
     $holidaysSQL = "
-    CREATE TABLE Holidays (
+    CREATE TABLE holidays (
         holiday_id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         date DATE NOT NULL,
@@ -324,7 +324,7 @@ try {
     
     // CheckIn table - Enhanced check-in records with instance support
     $checkinSQL = "
-    CREATE TABLE CheckIn (
+    CREATE TABLE checkin (
         checkin_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         event_id INT,
@@ -364,10 +364,10 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE SET NULL,
-        FOREIGN KEY (instance_id) REFERENCES EventInstances(instance_id) ON DELETE SET NULL,
-        FOREIGN KEY (device_id) REFERENCES RFIDDevices(device_id) ON DELETE SET NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE SET NULL,
+        FOREIGN KEY (instance_id) REFERENCES eventinstances(instance_id) ON DELETE SET NULL,
+        FOREIGN KEY (device_id) REFERENCES rfiddevices(device_id) ON DELETE SET NULL,
         INDEX idx_user_time (user_id, checkin_time),
         INDEX idx_event_time (event_id, checkin_time),
         INDEX idx_instance_time (instance_id, checkin_time),
@@ -380,7 +380,7 @@ try {
     
     // User Groups table
     $userGroupsSQL = "
-    CREATE TABLE UserGroups (
+    CREATE TABLE usergroups (
         group_id INT AUTO_INCREMENT PRIMARY KEY,
         group_name VARCHAR(100) NOT NULL UNIQUE,
         description TEXT,
@@ -390,7 +390,7 @@ try {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT TRUE,
         
-        FOREIGN KEY (created_by) REFERENCES Users(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE RESTRICT,
         INDEX idx_group_name (group_name),
         INDEX idx_group_type (group_type),
         INDEX idx_active (is_active)
@@ -399,7 +399,7 @@ try {
     
     // User Group Memberships table
     $userGroupMembershipsSQL = "
-    CREATE TABLE UserGroupMemberships (
+    CREATE TABLE usergroupmemberships (
         membership_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         group_id INT NOT NULL,
@@ -408,9 +408,9 @@ try {
         added_by INT NOT NULL,
         is_active BOOLEAN DEFAULT TRUE,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (group_id) REFERENCES UserGroups(group_id) ON DELETE CASCADE,
-        FOREIGN KEY (added_by) REFERENCES Users(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES usergroups(group_id) ON DELETE CASCADE,
+        FOREIGN KEY (added_by) REFERENCES users(user_id) ON DELETE RESTRICT,
         UNIQUE KEY unique_user_group (user_id, group_id),
         INDEX idx_user_id (user_id),
         INDEX idx_group_id (group_id),
@@ -421,7 +421,7 @@ try {
     
     // Event Group Assignments table
     $eventGroupAssignmentsSQL = "
-    CREATE TABLE EventGroupAssignments (
+    CREATE TABLE eventgroupassignments (
         assignment_id INT AUTO_INCREMENT PRIMARY KEY,
         event_id INT NOT NULL,
         group_id INT NOT NULL,
@@ -429,9 +429,9 @@ try {
         assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT TRUE,
         
-        FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE CASCADE,
-        FOREIGN KEY (group_id) REFERENCES UserGroups(group_id) ON DELETE CASCADE,
-        FOREIGN KEY (assigned_by) REFERENCES Users(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES usergroups(group_id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES users(user_id) ON DELETE RESTRICT,
         UNIQUE KEY unique_event_group (event_id, group_id),
         INDEX idx_event_id (event_id),
         INDEX idx_group_id (group_id),
@@ -447,7 +447,7 @@ try {
     
     // Event Registration table
     $eventRegistrationSQL = "
-    CREATE TABLE EventRegistration (
+    CREATE TABLE eventregistration (
         registration_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         event_id INT NOT NULL,
@@ -455,8 +455,8 @@ try {
         status ENUM('registered', 'cancelled', 'waitlist', 'confirmed') DEFAULT 'registered',
         notes TEXT,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
         UNIQUE KEY unique_user_event_reg (user_id, event_id),
         INDEX idx_status (status),
         INDEX idx_registration_time (registration_time)
@@ -465,7 +465,7 @@ try {
     
     // Activity Log table
     $activityLogSQL = "
-    CREATE TABLE ActivityLog (
+    CREATE TABLE activitylog (
         log_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT,
         action VARCHAR(100) NOT NULL,
@@ -475,7 +475,7 @@ try {
         user_agent TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
         INDEX idx_user_id (user_id),
         INDEX idx_action (action),
         INDEX idx_timestamp (timestamp)
@@ -484,7 +484,7 @@ try {
     
     // Access Logs table
     $accessLogsSQL = "
-    CREATE TABLE AccessLogs (
+    CREATE TABLE accesslogs (
         log_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT,
         action VARCHAR(100) NOT NULL,
@@ -495,8 +495,8 @@ try {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         device_id INT,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL,
-        FOREIGN KEY (device_id) REFERENCES RFIDDevices(device_id) ON DELETE SET NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+        FOREIGN KEY (device_id) REFERENCES rfiddevices(device_id) ON DELETE SET NULL,
         INDEX idx_user_id (user_id),
         INDEX idx_action (action),
         INDEX idx_timestamp (timestamp),
@@ -506,7 +506,7 @@ try {
     
     // System Settings table
     $systemSettingsSQL = "
-    CREATE TABLE SystemSettings (
+    CREATE TABLE system_settings (
         setting_id INT AUTO_INCREMENT PRIMARY KEY,
         setting_key VARCHAR(100) UNIQUE NOT NULL,
         setting_value TEXT,
@@ -517,26 +517,11 @@ try {
         updated_by INT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (updated_by) REFERENCES Users(user_id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
         INDEX idx_category (category),
         INDEX idx_is_public (is_public)
     ) ENGINE=InnoDB";
     executeSQL($pdo, $systemSettingsSQL, "System Settings table");
-    
-    // Legacy system_settings table (lowercase) for compatibility with existing code
-    $legacySystemSettingsSQL = "
-    CREATE TABLE system_settings (
-        setting_id INT AUTO_INCREMENT PRIMARY KEY,
-        setting_key VARCHAR(100) UNIQUE NOT NULL,
-        setting_value TEXT,
-        description VARCHAR(255),
-        updated_by INT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        
-        INDEX idx_setting_key (setting_key),
-        FOREIGN KEY (updated_by) REFERENCES Users(user_id) ON DELETE SET NULL
-    ) ENGINE=InnoDB";
-    executeSQL($pdo, $legacySystemSettingsSQL, "Legacy system_settings table");
     
     // RFID Scan Queue table for Registration Mode
     $rfidScanQueueSQL = "
@@ -556,7 +541,7 @@ try {
     
     // Notifications table
     $notificationsSQL = "
-    CREATE TABLE Notifications (
+    CREATE TABLE notifications (
         notification_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT,
         title VARCHAR(200) NOT NULL,
@@ -567,7 +552,7 @@ try {
         expires_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         
-        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
         INDEX idx_user_read (user_id, read_status),
         INDEX idx_created_at (created_at),
         INDEX idx_type (type)
@@ -576,7 +561,7 @@ try {
     
     // Reports table
     $reportsSQL = "
-    CREATE TABLE Reports (
+    CREATE TABLE reports (
         report_id INT AUTO_INCREMENT PRIMARY KEY,
         report_name VARCHAR(200) NOT NULL,
         report_type ENUM('attendance', 'usage', 'device_status', 'user_activity', 'custom') NOT NULL,
@@ -592,8 +577,8 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         completed_at DATETIME,
         
-        FOREIGN KEY (generated_by) REFERENCES Users(user_id) ON DELETE SET NULL,
-        FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE SET NULL,
+        FOREIGN KEY (generated_by) REFERENCES users(user_id) ON DELETE SET NULL,
+        FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE SET NULL,
         INDEX idx_report_type (report_type),
         INDEX idx_generated_by (generated_by),
         INDEX idx_status (status),
@@ -610,7 +595,7 @@ try {
     // Create default admin user
     $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
     $adminSQL = "
-    INSERT INTO Users (username, email, password, first_name, last_name, role, is_active, email_verified)
+    INSERT INTO users (username, email, password, first_name, last_name, role, is_active, email_verified)
     VALUES ('admin', 'admin@rfidcheckin.local', ?, 'System', 'Administrator', 'admin', 1, 1)";
     
     $stmt = $pdo->prepare($adminSQL);
@@ -630,7 +615,7 @@ try {
         ['rfid_registration_mode', '0', 'boolean', 'Enable RFID registration mode for accepting unregistered tags', 'rfid', 0]
     ];
     
-    $settingsSQL = "INSERT INTO SystemSettings (setting_key, setting_value, setting_type, description, category, is_public) VALUES (?, ?, ?, ?, ?, ?)";
+    $settingsSQL = "INSERT INTO system_settings (setting_key, setting_value, setting_type, description, category, is_public) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($settingsSQL);
     
     foreach ($settingsData as $setting) {
@@ -656,7 +641,7 @@ try {
     logMessage("Legacy system settings inserted");
     
     // Insert sample RFID device
-    $deviceSQL = "INSERT INTO RFIDDevices (device_name, device_serial, ip_address, location, status) VALUES (?, ?, ?, ?, ?)";
+    $deviceSQL = "INSERT INTO rfiddevices (device_name, device_serial, ip_address, location, status) VALUES (?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($deviceSQL);
     $stmt->execute(['Main Entrance Reader', 'RFID001', '192.168.1.100', 'Main Entrance', 'active']);
     logMessage("Sample RFID device added");
@@ -675,7 +660,7 @@ try {
     ];
     
     foreach ($eventsData as $event) {
-        $eventSQL = "INSERT INTO Events (
+        $eventSQL = "INSERT INTO events (
             name, description, location, event_type, capacity, start_date, end_date, 
             is_recurring, recurrence_type, recurrence_interval, recurrence_days, 
             recurrence_end_date, max_occurrences, has_breaks, break_schedule, created_by, active
@@ -741,7 +726,7 @@ try {
         return mktime(0, 0, 0, $n, $p + 1, $year);
     }
     
-    $holidaySQL = "INSERT INTO Holidays (name, date, year, type, state_codes, description) VALUES (?, ?, ?, ?, ?, ?)";
+    $holidaySQL = "INSERT INTO holidays (name, date, year, type, state_codes, description) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($holidaySQL);
     
     foreach ([$currentYear, $nextYear] as $year) {
@@ -796,7 +781,7 @@ try {
         ['All Staff', 'All company employees', 'custom']
     ];
     
-    $groupSQL = "INSERT INTO UserGroups (group_name, description, group_type, created_by) VALUES (?, ?, ?, 1)";
+    $groupSQL = "INSERT INTO usergroups (group_name, description, group_type, created_by) VALUES (?, ?, ?, 1)";
     $stmt = $pdo->prepare($groupSQL);
     
     foreach ($groupsData as $group) {
@@ -805,8 +790,8 @@ try {
     logMessage("Sample user groups created");
     
     // Add admin user to all groups as admin
-    $adminGroupSQL = "INSERT INTO UserGroupMemberships (user_id, group_id, role, added_by) 
-                      SELECT 1, group_id, 'admin', 1 FROM UserGroups";
+    $adminGroupSQL = "INSERT INTO usergroupmemberships (user_id, group_id, role, added_by) 
+                      SELECT 1, group_id, 'admin', 1 FROM usergroups";
     $pdo->exec($adminGroupSQL);
     logMessage("Admin user added to all groups");
     
@@ -820,7 +805,7 @@ try {
         [3, 9]  // Tech Conference -> All Staff
     ];
     
-    $assignGroupSQL = "INSERT INTO EventGroupAssignments (event_id, group_id, assigned_by) VALUES (?, ?, 1)";
+    $assignGroupSQL = "INSERT INTO eventgroupassignments (event_id, group_id, assigned_by) VALUES (?, ?, 1)";
     $stmt = $pdo->prepare($assignGroupSQL);
     
     foreach ($eventGroupAssignments as $assignment) {
@@ -846,7 +831,7 @@ try {
         last_login, 
         created_at,
         rfid_tag
-    FROM Users 
+    FROM users 
     WHERE is_active = TRUE";
     executeSQL($pdo, $viewActiveUsersSQL, "Active users view");
     
@@ -855,14 +840,14 @@ try {
     SELECT 
         e.*, 
         CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
-        (SELECT COUNT(*) FROM CheckIn c WHERE c.event_id = e.event_id AND c.status = 'checked_in') as current_checkins,
+        (SELECT COUNT(*) FROM checkin c WHERE c.event_id = e.event_id AND c.status = 'checked_in') as current_checkins,
         CASE 
             WHEN e.is_recurring = 1 THEN 
-                (SELECT COUNT(*) FROM EventInstances ei WHERE ei.parent_event_id = e.event_id AND ei.status = 'active')
+                (SELECT COUNT(*) FROM eventinstances ei WHERE ei.parent_event_id = e.event_id AND ei.status = 'active')
             ELSE 1
         END as active_instances
-    FROM Events e
-    LEFT JOIN Users u ON e.created_by = u.user_id
+    FROM events e
+    LEFT JOIN users u ON e.created_by = u.user_id
     WHERE e.active = TRUE 
     AND (
         (e.is_recurring = 0 AND DATE(e.start_date) <= CURDATE() AND (e.end_date IS NULL OR DATE(e.end_date) >= CURDATE()))
@@ -876,14 +861,14 @@ try {
     SELECT 
         e.*, 
         CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
-        (SELECT COUNT(*) FROM EventRegistration er WHERE er.event_id = e.event_id AND er.status = 'registered') as registered_count,
+        (SELECT COUNT(*) FROM eventregistration er WHERE er.event_id = e.event_id AND er.status = 'registered') as registered_count,
         CASE 
             WHEN e.is_recurring = 1 THEN 
-                (SELECT COUNT(*) FROM EventInstances ei WHERE ei.parent_event_id = e.event_id AND ei.instance_date > CURDATE())
+                (SELECT COUNT(*) FROM eventinstances ei WHERE ei.parent_event_id = e.event_id AND ei.instance_date > CURDATE())
             ELSE 1
         END as future_instances
-    FROM Events e
-    LEFT JOIN Users u ON e.created_by = u.user_id
+    FROM events e
+    LEFT JOIN users u ON e.created_by = u.user_id
     WHERE e.active = TRUE 
     AND (
         (e.is_recurring = 0 AND DATE(e.start_date) > CURDATE())
@@ -911,9 +896,9 @@ try {
         ei.end_datetime,
         ei.status as instance_status,
         CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name
-    FROM Events e
-    LEFT JOIN Users u ON e.created_by = u.user_id
-    LEFT JOIN EventInstances ei ON e.event_id = ei.parent_event_id AND ei.instance_date = CURDATE()
+    FROM events e
+    LEFT JOIN users u ON e.created_by = u.user_id
+    LEFT JOIN eventinstances ei ON e.event_id = ei.parent_event_id AND ei.instance_date = CURDATE()
     WHERE e.active = TRUE 
     AND (
         (e.is_recurring = 0 AND DATE(e.start_date) = CURDATE())
@@ -930,12 +915,12 @@ try {
     echo "<h2>⚡ Creating Performance Indexes</h2>";
     
     $indexes = [
-        "CREATE INDEX idx_checkin_user_time ON CheckIn(user_id, checkin_time DESC)",
-        "CREATE INDEX idx_events_time_active ON Events(start_time, active)",
-        "CREATE INDEX idx_accesslog_time_action ON AccessLogs(timestamp DESC, action)",
-        "CREATE INDEX idx_users_role_active ON Users(role, is_active)",
-        "CREATE INDEX idx_checkin_status_time ON CheckIn(status, checkin_time)",
-        "CREATE INDEX idx_events_type_time ON Events(event_type, start_time)"
+        "CREATE INDEX idx_checkin_user_time ON checkin(user_id, checkin_time DESC)",
+        "CREATE INDEX idx_events_time_active ON events(start_time, active)",
+        "CREATE INDEX idx_accesslog_time_action ON accesslogs(timestamp DESC, action)",
+        "CREATE INDEX idx_users_role_active ON users(role, is_active)",
+        "CREATE INDEX idx_checkin_status_time ON checkin(status, checkin_time)",
+        "CREATE INDEX idx_events_type_time ON events(event_type, start_time)"
     ];
     
     foreach ($indexes as $index) {
@@ -950,9 +935,9 @@ try {
     
     // Count records in each table
     $tables = [
-        'Users', 'Events', 'EventInstances', 'CheckIn', 'RFIDDevices', 
-        'ActivityLog', 'AccessLogs', 'SystemSettings', 'system_settings', 'rfid_scan_queue', 'Notifications', 
-        'Reports', 'Holidays', 'EventRegistration'
+        'users', 'events', 'eventinstances', 'checkin', 'rfiddevices', 
+        'activitylog', 'accesslogs', 'system_settings', 'rfid_scan_queue', 'notifications', 
+        'reports', 'holidays', 'eventregistration'
     ];
     
     logMessage("📊 Table Summary:");

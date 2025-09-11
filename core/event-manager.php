@@ -3,7 +3,17 @@
  * Enhanced Event Management System
  * 
  * Comprehensive event management with support for:
- * - Recurring events (daily, weekly, monthly, yearly)
+ * - Recurring events (daily, weekly, monthly, ye            $sql = "INSERT INTO eventinstan        $sql = "INSERT INTO eventinstances (
+            parent_event_id, instance_date, start_datetime, end_datetime,
+            status, is_holiday_conflict, holiday_name
+        ) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)";
+        
+        $stmt = $this->db->prepare($sql);
+                parent_event_id, instance_date, start_datetime, end_datetime,
+                status, is_holiday_conflict, holiday_name
+            ) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)";
+            
+            $stmt = $this->db->prepare($sql);
  * - Holiday integration
  * - Break/pause time management
  * - Event instance generation and management
@@ -39,7 +49,7 @@ class EventManager {
             }
             
             // Insert main event
-            $sql = "INSERT INTO Events (
+            $sql = "INSERT INTO events (
                 name, description, location, event_type, capacity,
                 start_date, end_date, start_time, end_time,
                 is_recurring, recurrence_type, recurrence_interval, 
@@ -154,7 +164,7 @@ class EventManager {
         
         // Insert all instances
         if (!empty($instances)) {
-            $sql = "INSERT INTO EventInstances (
+            $sql = "INSERT INTO eventinstances (
                 parent_event_id, instance_date, start_datetime, end_datetime, 
                 status, is_holiday_conflict, holiday_name
             ) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -192,7 +202,7 @@ class EventManager {
         // Check for holiday conflicts
         $holidayInfo = $this->checkHolidayConflict($instanceDate);
         
-        $sql = "INSERT INTO EventInstances (
+        $sql = "INSERT INTO eventinstances (
             parent_event_id, instance_date, start_datetime, end_datetime, 
             status, is_holiday_conflict, holiday_name
         ) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -271,7 +281,7 @@ class EventManager {
     public function checkHolidayConflict($date) {
         $stmt = $this->db->prepare("
             SELECT name, type, state_codes 
-            FROM Holidays 
+            FROM holidays 
             WHERE date = ? AND is_active = 1
         ");
         $stmt->execute([$date]);
@@ -294,7 +304,7 @@ class EventManager {
      */
     public function getHolidays($year) {
         $stmt = $this->db->prepare("
-            SELECT * FROM Holidays 
+            SELECT * FROM holidays 
             WHERE year = ? AND is_active = 1 
             ORDER BY date
         ");
@@ -310,7 +320,7 @@ class EventManager {
         
         try {
             // Get current event data
-            $stmt = $this->db->prepare("SELECT * FROM Events WHERE event_id = ?");
+            $stmt = $this->db->prepare("SELECT * FROM events WHERE event_id = ?");
             $stmt->execute([$eventId]);
             $currentEvent = $stmt->fetch();
             
@@ -319,7 +329,7 @@ class EventManager {
             }
             
             // Update main event
-            $sql = "UPDATE Events SET 
+            $sql = "UPDATE events SET 
                 name = ?, description = ?, location = ?, event_type = ?, capacity = ?,
                 start_date = ?, end_date = ?, start_time = ?, end_time = ?,
                 is_recurring = ?, recurrence_type = ?, recurrence_interval = ?, 
@@ -367,11 +377,11 @@ class EventManager {
             if ($recurrenceChanged) {
                 // Delete future instances (keep past ones with check-ins)
                 $stmt = $this->db->prepare("
-                    DELETE FROM EventInstances 
+                    DELETE FROM eventinstances 
                     WHERE parent_event_id = ? 
                     AND instance_date > CURDATE()
                     AND instance_id NOT IN (
-                        SELECT DISTINCT instance_id FROM CheckIn WHERE instance_id IS NOT NULL
+                        SELECT DISTINCT instance_id FROM checkin WHERE instance_id IS NOT NULL
                     )
                 ");
                 $stmt->execute([$eventId]);
@@ -435,10 +445,10 @@ class EventManager {
                 ei.is_holiday_conflict,
                 ei.holiday_name,
                 CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) as created_by_name,
-                (SELECT COUNT(*) FROM CheckIn c WHERE c.event_id = e.event_id AND c.instance_id = ei.instance_id) as checkin_count
-            FROM Events e
-            LEFT JOIN EventInstances ei ON e.event_id = ei.parent_event_id
-            LEFT JOIN Users u ON e.created_by = u.user_id
+                (SELECT COUNT(*) FROM checkin c WHERE c.event_id = e.event_id AND c.instance_id = ei.instance_id) as checkin_count
+            FROM events e
+            LEFT JOIN eventinstances ei ON e.event_id = ei.parent_event_id
+            LEFT JOIN users u ON e.created_by = u.user_id
             WHERE $whereClause
             ORDER BY COALESCE(ei.start_datetime, CONCAT(e.start_date, ' ', COALESCE(e.start_time, '00:00:00')))
         ";
@@ -456,7 +466,7 @@ class EventManager {
             $timestamp = date('Y-m-d H:i:s');
         }
         
-        $stmt = $this->db->prepare("SELECT break_checkins FROM CheckIn WHERE checkin_id = ?");
+        $stmt = $this->db->prepare("SELECT break_checkins FROM checkin WHERE checkin_id = ?");
         $stmt->execute([$checkinId]);
         $row = $stmt->fetch();
         
@@ -477,7 +487,7 @@ class EventManager {
         $totalBreakMinutes = $this->calculateTotalBreakTime($breakCheckins);
         
         $stmt = $this->db->prepare("
-            UPDATE CheckIn 
+            UPDATE checkin 
             SET break_checkins = ?, total_break_minutes = ? 
             WHERE checkin_id = ?
         ");
@@ -536,10 +546,10 @@ class EventManager {
                            ega.assigned_at, ega.assigned_by,
                            CONCAT(u.first_name, ' ', u.last_name) as assigned_by_name,
                            COUNT(ugm.user_id) as member_count
-                    FROM UserGroups ug
-                    INNER JOIN EventGroupAssignments ega ON ug.group_id = ega.group_id
-                    LEFT JOIN Users u ON ega.assigned_by = u.user_id
-                    LEFT JOIN UserGroupMemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
+                    FROM usergroups ug
+                    INNER JOIN eventgroupassignments ega ON ug.group_id = ega.group_id
+                    LEFT JOIN users u ON ega.assigned_by = u.user_id
+                    LEFT JOIN usergroupmemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
                     WHERE ega.event_id = ? AND ega.is_active = TRUE
                     GROUP BY ug.group_id
                     ORDER BY ug.group_name";
@@ -572,8 +582,8 @@ class EventManager {
             
             // Get total memberships (before deduplication)
             $sql = "SELECT COUNT(ugm.user_id) as total_memberships
-                    FROM UserGroupMemberships ugm
-                    INNER JOIN EventGroupAssignments ega ON ugm.group_id = ega.group_id
+                    FROM usergroupmemberships ugm
+                    INNER JOIN eventgroupassignments ega ON ugm.group_id = ega.group_id
                     WHERE ega.event_id = ? 
                       AND ugm.is_active = TRUE 
                       AND ega.is_active = TRUE";
@@ -588,9 +598,9 @@ class EventManager {
             
             // Get check-in statistics
             $sql = "SELECT COUNT(*) as checkin_count
-                    FROM CheckIn ci
-                    INNER JOIN UserGroupMemberships ugm ON ci.user_id = ugm.user_id
-                    INNER JOIN EventGroupAssignments ega ON ugm.group_id = ega.group_id
+                    FROM checkin ci
+                    INNER JOIN usergroupmemberships ugm ON ci.user_id = ugm.user_id
+                    INNER JOIN eventgroupassignments ega ON ugm.group_id = ega.group_id
                     WHERE ega.event_id = ? 
                       AND ugm.is_active = TRUE 
                       AND ega.is_active = TRUE";
@@ -625,8 +635,8 @@ class EventManager {
     public function canUserAccessEvent($userId, $eventId) {
         try {
             $sql = "SELECT COUNT(*) as can_access
-                    FROM UserGroupMemberships ugm
-                    INNER JOIN EventGroupAssignments ega ON ugm.group_id = ega.group_id
+                    FROM usergroupmemberships ugm
+                    INNER JOIN eventgroupassignments ega ON ugm.group_id = ega.group_id
                     WHERE ugm.user_id = ? 
                       AND ega.event_id = ? 
                       AND ugm.is_active = TRUE 

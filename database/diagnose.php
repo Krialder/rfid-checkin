@@ -58,13 +58,13 @@ try {
     
     // Check for required tables
     $requiredTables = [
-        'Users',
-        'Events', 
-        'CheckIn',
-        'AccessLogs',
+        'users',
+        'events', 
+        'checkin',
+        'accesslogs',
         'system_settings',
         'rfid_scan_queue',
-        'RFIDDevices'
+        'rfiddevices'
     ];
     
     echo "REQUIRED TABLES CHECK:\n";
@@ -112,8 +112,8 @@ try {
     }
     
     // Check if we have any users
-    if (in_array('Users', $tables)) {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM Users");
+    if (in_array('users', $tables)) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users");
         $stmt->execute();
         $userCount = $stmt->fetchColumn();
         
@@ -122,7 +122,7 @@ try {
             echo "  ⚠ No users in database\n";
             echo "  You'll need to create an admin user\n";
         } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM Users WHERE role = 'admin'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE role = 'admin'");
             $stmt->execute();
             $adminCount = $stmt->fetchColumn();
             echo "  ✓ $userCount total users ($adminCount admins)\n";

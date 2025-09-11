@@ -47,9 +47,9 @@ try {
                   AND YEAR(checkin_time) = YEAR(CURRENT_DATE()) THEN 1 END) as month_checkins,
             COUNT(DISTINCT event_id) as unique_events,
             AVG(TIMESTAMPDIFF(MINUTE, 
-                (SELECT start_time FROM Events WHERE event_id = CheckIn.event_id), 
+                (SELECT start_time FROM events WHERE event_id = checkin.event_id), 
                 checkin_time)) as avg_checkin_delay
-        FROM CheckIn 
+        FROM checkin 
         WHERE user_id = ?
     ");
     $stmt->execute([$user['user_id']]);
@@ -70,8 +70,8 @@ try {
             e.location,
             c.checkin_time,
             c.status
-        FROM CheckIn c
-        JOIN Events e ON c.event_id = e.event_id
+        FROM checkin c
+        JOIN events e ON c.event_id = e.event_id
         WHERE c.user_id = ?
         ORDER BY c.checkin_time DESC
         LIMIT 10
@@ -88,7 +88,7 @@ try {
             start_time,
             end_time,
             description
-        FROM Events
+        FROM events
         WHERE start_time > NOW()
         AND active = 1
         ORDER BY start_time ASC
@@ -105,7 +105,7 @@ try {
             location,
             start_time,
             end_time
-        FROM Events
+        FROM events
         WHERE DATE(start_time) = CURDATE()
         OR (start_time <= NOW() AND end_time >= NOW())
         AND active = 1

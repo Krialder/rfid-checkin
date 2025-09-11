@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             // Check if user exists
-            $stmt = $db->prepare("SELECT user_id, username, first_name FROM Users WHERE email = ?");
+            $stmt = $db->prepare("SELECT user_id, username, first_name FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     // Log the password reset request
                     $stmt = $db->prepare("
-                        INSERT INTO ActivityLog (user_id, action, details, ip_address) 
+                        INSERT INTO activitylog (user_id, action, details, ip_address) 
                         VALUES (?, 'password_reset_request', 'Password reset requested', ?)
                     ");
                     $stmt->execute([

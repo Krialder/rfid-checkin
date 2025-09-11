@@ -58,28 +58,26 @@ try {
     
     if (!$user) {
         // Log failed attempt with NULL user_id (should work after database fix)
-        try {
-            $stmt = $db->prepare("
-                INSERT INTO accesslogs (user_id, device_id, ip_address, action, status, resource, timestamp) 
-                VALUES (NULL, ?, ?, 'rfid_scan', 'failure', ?, NOW())
-            ");
-            $stmt->execute([$device_id, $ip_address, "RFID: $rfid"]);
-        } catch (PDOException $logError) {
-            // If foreign key constraint fails, log without user_id column
-            error_log('AccessLogs constraint error: ' . $logError->getMessage());
             try {
                 $stmt = $db->prepare("
-                    INSERT INTO accesslogs (device_id, ip_address, action, status, resource, timestamp) 
-                    VALUES (?, ?, 'rfid_scan', 'failure', ?, NOW())
+                    INSERT INTO accesslogs (user_id, device_id, ip_address, action, status, resource, timestamp) 
+                    VALUES (NULL, ?, ?, 'rfid_scan', 'failure', ?, NOW())
                 ");
                 $stmt->execute([$device_id, $ip_address, "RFID: $rfid"]);
-            } catch (PDOException $fallbackError) {
-                // If even that fails, just continue without logging
-                error_log('AccessLogs fallback failed: ' . $fallbackError->getMessage());
-            }
-        }
-        
-        $db->commit();
+            } catch (PDOException $logError) {
+                // If foreign key constraint fails, log without user_id column
+                error_log('accesslogs constraint error: ' . $logError->getMessage());
+                try {
+                    $stmt = $db->prepare("
+                        INSERT INTO accesslogs (device_id, ip_address, action, status, resource, timestamp) 
+                        VALUES (?, ?, 'rfid_scan', 'failure', ?, NOW())
+                    ");
+                    $stmt->execute([$device_id, $ip_address, "RFID: $rfid"]);
+                } catch (PDOException $fallbackError) {
+                    // If even that fails, just continue without logging
+                    error_log('accesslogs fallback failed: ' . $fallbackError->getMessage());
+                }
+            }        $db->commit();
         
         if ($is_registration_mode) {
             // In registration mode, accept unregistered RFID tags
@@ -112,9 +110,9 @@ try {
     $stmt = $db->prepare("
         SELECT event_id, name as event_name, location 
         FROM events 
-        WHERE DATE(start_time) = CURDATE() 
-        AND start_time <= NOW() 
-        AND end_time >= NOW() 
+        WHERE DATE(start_date) = CURDATE() 
+        AND start_time <= TIME(NOW()) 
+        AND end_time >= TIME(NOW()) 
         AND active = 1
         ORDER BY start_time ASC 
         LIMIT 1

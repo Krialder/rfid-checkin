@@ -67,9 +67,9 @@ The database infrastructure serves as the foundational data layer for the RFID C
 ├──────────────────────────────────────────────────────────────────┤
 │     Core Tables      │   Management Tables   │   System Tables   │
 │   ┌─────────────────┐│ ┌───────────────────┐ │┌─────────────────┐│
-│   │ Users           ││ │ ActivityLog       │ ││ SystemSettings  ││
+│   │ users           ││ │ activitylog       │ ││ systemsettings  ││
 │   │ Events          ││ │ AccessLogs        │ ││ system_settings ││
-│   │ CheckIn         ││ │ Reports           │ ││ password_resets ││
+│   │ checkin         ││ │ reports           │ ││ password_resets ││
 │   │ EventInstances  ││ │ Notifications     │ ││ rfid_scan_queue ││
 │   │ RFIDDevices     ││ │ Holidays          │ ││                 ││
 │   └─────────────────┘│ └───────────────────┘ │└─────────────────┘│
@@ -110,7 +110,7 @@ The database infrastructure serves as the foundational data layer for the RFID C
 #### Core Entity Relationships
 ```sql
 -- Primary entities and their relationships
-Users (1) ←→ (N) CheckIn ←→ (1) Events
+users (1) ←→ (N) checkin ←→ (1) events
 Users (1) ←→ (N) UserGroupMemberships ←→ (1) UserGroups
 Events (1) ←→ (N) EventInstances
 Events (1) ←→ (N) EventGroupAssignments ←→ (1) UserGroups
@@ -120,9 +120,9 @@ Events (1) ←→ (N) EventRegistration ←→ (1) Users
 #### Advanced Relationships
 ```sql
 -- Complex relationships for advanced features
-Events (1) ←→ (N) CheckIn ←→ (1) EventInstances
+events (1) ←→ (N) checkin ←→ (1) eventinstances
 Users (1) ←→ (N) password_resets
-Users (1) ←→ (N) ActivityLog
+users (1) ←→ (N) activitylog
 Users (1) ←→ (N) AccessLogs
 Events ←→ Holidays (conflict detection)
 RFIDDevices ←→ Users (tag assignments)
@@ -138,7 +138,7 @@ RFIDDevices ←→ Users (tag assignments)
 #### Denormalization Strategies
 ```sql
 -- Strategic denormalization for performance
-CREATE TABLE CheckIn (
+CREATE TABLE checkin (
     -- Denormalized user info for reporting performance
     user_full_name VARCHAR(100), -- Derived from Users.first_name + last_name
     event_title VARCHAR(200),    -- Derived from Events.event_name
@@ -156,7 +156,7 @@ CREATE TABLE CheckIn (
 
 #### **Users** - Core User Account Management
 ```sql
-CREATE TABLE Users (
+CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -218,7 +218,7 @@ CREATE TABLE password_resets (
 
 #### **Events** - Advanced Event Management System
 ```sql
-CREATE TABLE Events (
+CREATE TABLE events (
     event_id INT AUTO_INCREMENT PRIMARY KEY,
     event_name VARCHAR(200) NOT NULL,
     description TEXT,
@@ -274,7 +274,7 @@ CREATE TABLE Events (
 
 #### **EventInstances** - Recurring Event Instance Management
 ```sql
-CREATE TABLE EventInstances (
+CREATE TABLE eventinstances (
     instance_id INT AUTO_INCREMENT PRIMARY KEY,
     parent_event_id INT NOT NULL,
     instance_date DATE NOT NULL,
@@ -303,9 +303,9 @@ CREATE TABLE EventInstances (
 
 ### Check-in Management Tables
 
-#### **CheckIn** - Comprehensive Check-in Records
+#### **checkin** - Comprehensive Check-in Records
 ```sql
-CREATE TABLE CheckIn (
+CREATE TABLE checkin (
     checkin_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     event_id INT NOT NULL,
@@ -349,7 +349,7 @@ CREATE TABLE CheckIn (
 
 #### **UserGroups** - Flexible Group Management
 ```sql
-CREATE TABLE UserGroups (
+CREATE TABLE usergroups (
     group_id INT AUTO_INCREMENT PRIMARY KEY,
     group_name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
@@ -373,7 +373,7 @@ CREATE TABLE UserGroups (
 
 #### **UserGroupMemberships** - Multi-Role Group Memberships
 ```sql
-CREATE TABLE UserGroupMemberships (
+CREATE TABLE usergroupmemberships (
     membership_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     group_id INT NOT NULL,
@@ -399,9 +399,9 @@ CREATE TABLE UserGroupMemberships (
 
 ### System Management Tables
 
-#### **ActivityLog** - Comprehensive Audit Trail
+#### **activitylog** - Comprehensive Audit Trail
 ```sql
-CREATE TABLE ActivityLog (
+CREATE TABLE activitylog (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
     action VARCHAR(100) NOT NULL,
@@ -431,7 +431,7 @@ CREATE TABLE ActivityLog (
 
 #### **SystemSettings** - Configuration Management
 ```sql
-CREATE TABLE SystemSettings (
+CREATE TABLE systemsettings (
     setting_id INT AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(100) NOT NULL UNIQUE,
     setting_value TEXT,
@@ -461,7 +461,7 @@ CREATE VIEW secure_user_view AS
 SELECT 
     user_id, username, email, first_name, last_name, 
     role, is_active, last_login, department, position
-FROM Users 
+FROM users 
 WHERE is_active = TRUE
   AND (
     -- Users can see their own data
@@ -506,9 +506,9 @@ CREATE TABLE encrypted_user_data (
 #### Primary Indexes
 ```sql
 -- Composite indexes for complex queries
-CREATE INDEX idx_checkin_user_date ON CheckIn(user_id, checkin_time);
+CREATE INDEX idx_checkin_user_date ON checkin(user_id, checkin_time);
 CREATE INDEX idx_event_date_status ON Events(start_date, status, active);
-CREATE INDEX idx_activity_user_time ON ActivityLog(user_id, timestamp DESC);
+CREATE INDEX idx_activity_user_time ON activitylog(user_id, timestamp DESC);
 
 -- Covering indexes for frequent SELECT operations
 CREATE INDEX idx_user_login_covering ON Users(email, password, is_active, role, user_id);
@@ -518,9 +518,9 @@ CREATE INDEX idx_user_login_covering ON Users(email, password, is_active, role, 
 ```sql
 -- Optimized event participant query
 SELECT DISTINCT u.user_id, u.first_name, u.last_name, u.email
-FROM Users u
-JOIN UserGroupMemberships ugm ON u.user_id = ugm.user_id
-JOIN EventGroupAssignments ega ON ugm.group_id = ega.group_id
+FROM users u
+JOIN usergroupmemberships ugm ON u.user_id = ugm.user_id
+JOIN eventgroupassignments ega ON ugm.group_id = ega.group_id
 WHERE ega.event_id = ?
   AND u.is_active = TRUE
   AND ugm.is_active = TRUE
@@ -532,7 +532,7 @@ SELECT
     COUNT(*) as total_checkins,
     COUNT(DISTINCT user_id) as unique_users,
     AVG(delay_minutes) as avg_delay
-FROM CheckIn 
+FROM checkin 
 WHERE checkin_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
 GROUP BY DATE(checkin_time)
 ORDER BY checkin_date DESC;
@@ -605,14 +605,14 @@ $validationFeatures = [
 CREATE VIEW view_active_users AS
 SELECT user_id, username, email, first_name, last_name, 
        rfid_tag, role, department, last_login
-FROM Users 
+FROM users 
 WHERE is_active = TRUE;
 
 CREATE VIEW view_current_events AS
 SELECT e.*, u.username as created_by_name,
        COUNT(DISTINCT ei.instance_id) as active_instances
-FROM Events e
-LEFT JOIN Users u ON e.created_by = u.user_id
+FROM events e
+LEFT JOIN users u ON e.created_by = u.user_id
 LEFT JOIN EventInstances ei ON e.event_id = ei.parent_event_id 
     AND ei.instance_date >= CURDATE()
 WHERE e.active = TRUE 
@@ -622,10 +622,10 @@ CREATE VIEW view_today_events AS
 SELECT e.event_id, e.event_name, e.start_time, e.end_time, e.location,
        COALESCE(ei.start_datetime, TIMESTAMP(e.start_date, e.start_time)) as event_datetime,
        COUNT(DISTINCT c.user_id) as current_attendance
-FROM Events e
-LEFT JOIN EventInstances ei ON e.event_id = ei.parent_event_id 
+FROM events e
+LEFT JOIN eventinstances ei ON e.event_id = ei.parent_event_id 
     AND ei.instance_date = CURDATE()
-LEFT JOIN CheckIn c ON e.event_id = c.event_id 
+LEFT JOIN checkin c ON e.event_id = c.event_id 
     AND DATE(c.checkin_time) = CURDATE()
 WHERE e.active = TRUE 
   AND (e.start_date = CURDATE() OR ei.instance_date = CURDATE())
@@ -734,7 +734,7 @@ CREATE TABLE database_migrations (
 START TRANSACTION;
 
 -- Add new columns
-ALTER TABLE Events 
+ALTER TABLE events 
 ADD COLUMN virtual_meeting_url VARCHAR(500),
 ADD COLUMN meeting_platform ENUM('zoom', 'teams', 'webex', 'other');
 
@@ -752,13 +752,13 @@ DELIMITER $$
 CREATE PROCEDURE PerformDatabaseMaintenance()
 BEGIN
     -- Optimize tables
-    OPTIMIZE TABLE Users, Events, CheckIn, ActivityLog;
+    OPTIMIZE TABLE users, events, checkin, activitylog;
     
     -- Update statistics
     ANALYZE TABLE Users, Events, CheckIn;
     
     -- Clean old logs (90 days)
-    DELETE FROM ActivityLog 
+    DELETE FROM activitylog 
     WHERE timestamp < DATE_SUB(NOW(), INTERVAL 90 DAY);
     
     -- Clean expired password resets
@@ -766,7 +766,7 @@ BEGIN
     WHERE expires < NOW() OR used = TRUE;
     
     -- Log maintenance completion
-    INSERT INTO ActivityLog (action, details) 
+    INSERT INTO activitylog (action, details) 
     VALUES ('system_maintenance', 'Automated maintenance completed');
 END$$
 DELIMITER ;
@@ -894,7 +894,7 @@ SELECT
     COUNT(CASE WHEN action LIKE '%checkin%' THEN 1 END) as checkins,
     AVG(CASE WHEN action = 'checkin' THEN 
         EXTRACT(HOUR FROM timestamp) END) as avg_checkin_hour
-FROM ActivityLog 
+FROM activitylog 
 WHERE timestamp >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
 GROUP BY DATE(timestamp)
 ORDER BY activity_date DESC;
@@ -910,7 +910,7 @@ SELECT
     'Total Users' as metric,
     COUNT(*) as current_value,
     COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthly_change
-FROM Users WHERE is_active = TRUE
+FROM users WHERE is_active = TRUE
 
 UNION ALL
 
@@ -918,7 +918,7 @@ SELECT
     'Active Events' as metric,
     COUNT(*) as current_value,
     COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthly_change
-FROM Events WHERE active = TRUE AND start_date >= CURDATE()
+FROM events WHERE active = TRUE AND start_date >= CURDATE()
 
 UNION ALL
 
@@ -958,7 +958,7 @@ ORDER BY query_time DESC
 LIMIT 10;
 
 -- Check index usage
-EXPLAIN SELECT * FROM Users WHERE email = 'user@example.com';
+EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
 ```
 
 #### Data Integrity Issues
@@ -991,14 +991,14 @@ WHERE e.event_id IS NULL;
 ```sql
 -- Good: Use explicit joins
 SELECT u.username, e.event_name, c.checkin_time
-FROM Users u
-JOIN CheckIn c ON u.user_id = c.user_id
-JOIN Events e ON c.event_id = e.event_id
+FROM users u
+JOIN checkin c ON u.user_id = c.user_id
+JOIN events e ON c.event_id = e.event_id
 WHERE u.is_active = TRUE;
 
 -- Avoid: Implicit joins
 SELECT u.username, e.event_name, c.checkin_time
-FROM Users u, CheckIn c, Events e
+FROM users u, checkin c, events e
 WHERE u.user_id = c.user_id 
   AND c.event_id = e.event_id 
   AND u.is_active = TRUE;

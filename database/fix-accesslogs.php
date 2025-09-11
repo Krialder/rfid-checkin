@@ -12,11 +12,11 @@ header('Content-Type: text/plain');
 try {
     $db = getDB();
     
-    echo "Fixing AccessLogs table constraints...\n\n";
+    echo "Fixing accesslogs table constraints...\n\n";
     
     // First, check current table structure
-    echo "Current AccessLogs table structure:\n";
-    $stmt = $db->prepare("DESCRIBE AccessLogs");
+    echo "Current accesslogs table structure:\n";
+    $stmt = $db->prepare("DESCRIBE accesslogs");
     $stmt->execute();
     $columns = $stmt->fetchAll();
     
@@ -40,7 +40,7 @@ try {
             REFERENCED_COLUMN_NAME,
             DELETE_RULE
         FROM information_schema.KEY_COLUMN_USAGE 
-        WHERE TABLE_NAME = 'AccessLogs' 
+        WHERE TABLE_NAME = 'accesslogs' 
         AND TABLE_SCHEMA = ?
         AND REFERENCED_TABLE_NAME IS NOT NULL
     ");
@@ -67,14 +67,14 @@ try {
     
     try {
         // Drop existing constraints if they exist
-        $db->exec("ALTER TABLE AccessLogs DROP FOREIGN KEY accesslogs_ibfk_1");
+        $db->exec("ALTER TABLE accesslogs DROP FOREIGN KEY accesslogs_ibfk_1");
         echo "✓ Dropped old user_id constraint\n";
     } catch (PDOException $e) {
         echo "- No old user_id constraint to drop (this is fine)\n";
     }
     
     try {
-        $db->exec("ALTER TABLE AccessLogs DROP FOREIGN KEY accesslogs_ibfk_2");
+        $db->exec("ALTER TABLE accesslogs DROP FOREIGN KEY accesslogs_ibfk_2");
         echo "✓ Dropped old device_id constraint\n";
     } catch (PDOException $e) {
         echo "- No old device_id constraint to drop (this is fine)\n";
@@ -82,7 +82,7 @@ try {
     
     // Ensure user_id column allows NULL
     try {
-        $db->exec("ALTER TABLE AccessLogs MODIFY COLUMN user_id INT NULL");
+        $db->exec("ALTER TABLE accesslogs MODIFY COLUMN user_id INT NULL");
         echo "✓ Modified user_id column to allow NULL\n";
     } catch (PDOException $e) {
         echo "- Error modifying user_id column: " . $e->getMessage() . "\n";
@@ -91,9 +91,9 @@ try {
     // Add proper foreign key constraints
     try {
         $db->exec("
-            ALTER TABLE AccessLogs 
+            ALTER TABLE accesslogs 
             ADD CONSTRAINT fk_accesslogs_user 
-            FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
         ");
         echo "✓ Added proper user_id foreign key constraint (allows NULL)\n";
     } catch (PDOException $e) {
@@ -102,9 +102,9 @@ try {
     
     try {
         $db->exec("
-            ALTER TABLE AccessLogs 
+            ALTER TABLE accesslogs 
             ADD CONSTRAINT fk_accesslogs_device 
-            FOREIGN KEY (device_id) REFERENCES RFIDDevices(device_id) ON DELETE SET NULL
+            FOREIGN KEY (device_id) REFERENCES rfiddevices(device_id) ON DELETE SET NULL
         ");
         echo "✓ Added proper device_id foreign key constraint\n";
     } catch (PDOException $e) {
@@ -117,13 +117,13 @@ try {
         $db->beginTransaction();
         
         $stmt = $db->prepare("
-            INSERT INTO AccessLogs (user_id, device_id, ip_address, action, status, resource, timestamp) 
+            INSERT INTO accesslogs (user_id, device_id, ip_address, action, status, resource, timestamp) 
             VALUES (NULL, 1, '127.0.0.1', 'test_scan', 'failure', 'RFID: TEST123', NOW())
         ");
         $stmt->execute();
         
         // Clean up test record
-        $stmt = $db->prepare("DELETE FROM AccessLogs WHERE resource = 'RFID: TEST123'");
+        $stmt = $db->prepare("DELETE FROM accesslogs WHERE resource = 'RFID: TEST123'");
         $stmt->execute();
         
         $db->commit();

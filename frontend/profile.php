@@ -89,9 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get user's RFID tag (stored in Users table)
+// Get user's RFID tag (stored in users table)
 try {
-    $stmt = $db->prepare("SELECT rfid_tag FROM Users WHERE user_id = ?");
+    $stmt = $db->prepare("SELECT rfid_tag FROM users WHERE user_id = ?");
     $stmt->execute([$user['user_id']]);
     $user_rfid = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -121,7 +121,7 @@ try {
             COUNT(DISTINCT event_id) as unique_events,
             MIN(checkin_time) as first_checkin,
             MAX(checkin_time) as last_checkin
-        FROM CheckIn 
+        FROM checkin 
         WHERE user_id = ?
     ");
     $stmt->execute([$user['user_id']]);
@@ -159,7 +159,7 @@ function updateProfile($db, $user_id, $data) {
         }
         
         // Check if email is already taken by another user
-        $stmt = $db->prepare("SELECT user_id FROM Users WHERE email = ? AND user_id != ?");
+        $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
         $stmt->execute([$email, $user_id]);
         if ($stmt->fetch()) {
             return ['success' => false, 'message' => 'Email address is already in use by another account.'];
@@ -167,7 +167,7 @@ function updateProfile($db, $user_id, $data) {
         
         // Update profile
         $stmt = $db->prepare("
-            UPDATE Users 
+            UPDATE users 
             SET first_name = ?, last_name = ?, email = ?, phone = ?, bio = ?, updated_at = NOW()
             WHERE user_id = ?
         ");
@@ -213,7 +213,7 @@ function uploadAvatar($user_id) {
         
         // Remove old avatar if exists
         $db = getDB();
-        $stmt = $db->prepare("SELECT avatar FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT avatar FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $current_avatar = $stmt->fetchColumn();
         
@@ -227,7 +227,7 @@ function uploadAvatar($user_id) {
         }
         
         // Update database
-        $stmt = $db->prepare("UPDATE Users SET avatar = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET avatar = ?, updated_at = NOW() WHERE user_id = ?");
         $stmt->execute([$upload_path, $user_id]);
         
         return ['success' => true, 'message' => 'Avatar updated successfully!'];
@@ -240,7 +240,7 @@ function uploadAvatar($user_id) {
 
 function removeAvatar($db, $user_id) {
     try {
-        $stmt = $db->prepare("SELECT avatar FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT avatar FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $avatar = $stmt->fetchColumn();
         
@@ -248,7 +248,7 @@ function removeAvatar($db, $user_id) {
             unlink($avatar);
         }
         
-        $stmt = $db->prepare("UPDATE Users SET avatar = NULL, updated_at = NOW() WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET avatar = NULL, updated_at = NOW() WHERE user_id = ?");
         $stmt->execute([$user_id]);
         
         return ['success' => true, 'message' => 'Avatar removed successfully!'];
@@ -272,8 +272,8 @@ function addRFIDTag($db, $user_id, $tag_value) {
             return ['success' => false, 'message' => 'RFID tag must be 8-16 hexadecimal characters.'];
         }
         
-        // Check if tag already exists (in Users table)
-        $stmt = $db->prepare("SELECT user_id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as name FROM Users WHERE rfid_tag = ? AND user_id != ?");
+        // Check if tag already exists (in users table)
+        $stmt = $db->prepare("SELECT user_id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as name FROM users WHERE rfid_tag = ? AND user_id != ?");
         $stmt->execute([$tag_value, $user_id]);
         $existing = $stmt->fetch();
         
@@ -282,7 +282,7 @@ function addRFIDTag($db, $user_id, $tag_value) {
         }
         
         // Check if user already has an RFID tag
-        $stmt = $db->prepare("SELECT rfid_tag FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT rfid_tag FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $current_tag = $stmt->fetch();
         
@@ -290,8 +290,8 @@ function addRFIDTag($db, $user_id, $tag_value) {
             return ['success' => false, 'message' => 'You already have an RFID tag registered. Remove the current one first.'];
         }
         
-        // Update user's RFID tag in Users table
-        $stmt = $db->prepare("UPDATE Users SET rfid_tag = ? WHERE user_id = ?");
+        // Update user's RFID tag in users table
+        $stmt = $db->prepare("UPDATE users SET rfid_tag = ? WHERE user_id = ?");
         $stmt->execute([$tag_value, $user_id]);
         
         return ['success' => true, 'message' => 'RFID tag added successfully!'];
@@ -304,8 +304,8 @@ function addRFIDTag($db, $user_id, $tag_value) {
 
 function removeRFIDTag($db, $user_id) {
     try {
-        // Remove RFID tag from Users table (set to NULL)
-        $stmt = $db->prepare("UPDATE Users SET rfid_tag = NULL WHERE user_id = ?");
+        // Remove RFID tag from users table (set to NULL)
+        $stmt = $db->prepare("UPDATE users SET rfid_tag = NULL WHERE user_id = ?");
         $stmt->execute([$user_id]);
         
         if ($stmt->rowCount() > 0) {

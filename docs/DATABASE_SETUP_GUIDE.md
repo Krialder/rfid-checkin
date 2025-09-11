@@ -134,7 +134,7 @@ COLLATE utf8mb4_unicode_ci;
 
 ### Create Admin User Manually
 ```sql
-INSERT INTO Users (username, email, password, first_name, last_name, role, is_active, email_verified)
+INSERT INTO users (username, email, password, first_name, last_name, role, is_active, email_verified)
 VALUES ('admin', 'admin@rfidcheckin.local', '$2y$10$...hash...', 'Admin', 'User', 'admin', 1, 1);
 ```
 
@@ -144,29 +144,29 @@ VALUES ('admin', 'admin@rfidcheckin.local', '$2y$10$...hash...', 'Admin', 'User'
 SHOW TABLES;
 
 -- Check table structure  
-DESCRIBE Users;
-DESCRIBE Events;
-DESCRIBE CheckIn;
+DESCRIBE users;
+DESCRIBE events;
+DESCRIBE checkin;
 
 -- Count records
-SELECT 'Users' as table_name, COUNT(*) as count FROM Users
+SELECT 'users' as table_name, COUNT(*) as count FROM users
 UNION ALL
-SELECT 'Events', COUNT(*) FROM Events  
+SELECT 'events', COUNT(*) FROM events  
 UNION ALL
-SELECT 'CheckIn', COUNT(*) FROM CheckIn;
+SELECT 'checkin', COUNT(*) FROM checkin;
 ```
 
 ### Fix Common Issues
 ```sql
 -- Reset admin password
-UPDATE Users SET password = '$2y$10$...new_hash...' WHERE username = 'admin';
+UPDATE users SET password = '$2y$10$...new_hash...' WHERE username = 'admin';
 
 -- Activate all users
-UPDATE Users SET is_active = 1 WHERE is_active = 0;
+UPDATE users SET is_active = 1 WHERE is_active = 0;
 
 -- Clean orphaned check-ins
-DELETE c FROM CheckIn c 
-LEFT JOIN Users u ON c.user_id = u.user_id 
+DELETE c FROM checkin c 
+LEFT JOIN users u ON c.user_id = u.user_id 
 WHERE u.user_id IS NULL;
 ```
 

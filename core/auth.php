@@ -103,7 +103,7 @@ class Auth {
             $stmt = $db->prepare("
                 SELECT user_id, username, email, password, first_name, last_name, 
                        role, is_active, failed_login_attempts, locked_until
-                FROM Users 
+                FROM users 
                 WHERE (email = ? OR username = ?) AND is_active = 1
                 LIMIT 1
             ");
@@ -138,7 +138,7 @@ class Auth {
             $_SESSION['login_time'] = time();
             
             // Record last login timestamp for security auditing
-            $updateStmt = $db->prepare("UPDATE Users SET last_login = NOW() WHERE user_id = ?");
+            $updateStmt = $db->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
             $updateStmt->execute([$user['user_id']]);
             
             // Log successful authentication for security monitoring
@@ -205,7 +205,7 @@ class Auth {
             $stmt = $db->prepare("
                 SELECT user_id, username, email, first_name, last_name, role, 
                        department, phone, created_at, last_login
-                FROM Users 
+                FROM users 
                 WHERE user_id = ? AND is_active = 1
             ");
             $stmt->execute([$_SESSION['user_id']]);
@@ -286,7 +286,7 @@ class Auth {
             
             // Increment failed attempts
             $stmt = $db->prepare("
-                UPDATE Users 
+                UPDATE users 
                 SET failed_login_attempts = failed_login_attempts + 1,
                     locked_until = CASE 
                         WHEN failed_login_attempts + 1 >= ? THEN DATE_ADD(NOW(), INTERVAL 15 MINUTE)
@@ -310,7 +310,7 @@ class Auth {
         try {
             $db = getDB();
             $stmt = $db->prepare("
-                UPDATE Users 
+                UPDATE users 
                 SET failed_login_attempts = 0, locked_until = NULL 
                 WHERE user_id = ?
             ");
@@ -328,7 +328,7 @@ class Auth {
         try {
             $db = getDB();
             $stmt = $db->prepare("
-                INSERT INTO ActivityLog (user_id, action, details, ip_address, timestamp)
+                INSERT INTO activitylog (user_id, action, details, ip_address, timestamp)
                 VALUES (NULL, 'failed_login', ?, ?, NOW())
             ");
             $stmt->execute([
@@ -348,7 +348,7 @@ class Auth {
         try {
             $db = getDB();
             $stmt = $db->prepare("
-                INSERT INTO ActivityLog (user_id, action, details, ip_address, timestamp)
+                INSERT INTO activitylog (user_id, action, details, ip_address, timestamp)
                 VALUES (?, ?, ?, ?, NOW())
             ");
             $stmt->execute([
@@ -388,7 +388,7 @@ class Auth {
             $db = getDB();
             
             // Find user
-            $stmt = $db->prepare("SELECT user_id FROM Users WHERE email = ? AND is_active = 1");
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? AND is_active = 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             
@@ -456,7 +456,7 @@ class Auth {
             // Update password
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
             $stmt = $db->prepare("
-                UPDATE Users 
+                UPDATE users 
                 SET password = ?, failed_login_attempts = 0, locked_until = NULL
                 WHERE user_id = ?
             ");

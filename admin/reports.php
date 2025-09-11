@@ -23,32 +23,32 @@ $groupManager = new UserGroupManager();
 // Fetch real statistics
 try {
     // Total check-ins
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM CheckIn");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM checkin");
     $stmt->execute();
     $total_checkins = $stmt->fetch()['total'];
     
     // Active events (current and upcoming)
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Events WHERE active = 1 AND end_time >= NOW()");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM events WHERE active = 1 AND end_date >= CURDATE()");
     $stmt->execute();
     $active_events = $stmt->fetch()['total'];
     
     // Registered users
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Users WHERE active = 1");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM users WHERE is_active = 1");
     $stmt->execute();
     $registered_users = $stmt->fetch()['total'];
     
     // Recent check-ins (last 24 hours)
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM CheckIn WHERE checkin_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM checkin WHERE checkin_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
     $stmt->execute();
     $recent_checkins = $stmt->fetch()['total'];
     
     // Events this month
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM Events WHERE active = 1 AND MONTH(start_time) = MONTH(CURRENT_DATE()) AND YEAR(start_time) = YEAR(CURRENT_DATE())");
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM events WHERE active = 1 AND MONTH(start_date) = MONTH(CURRENT_DATE()) AND YEAR(start_date) = YEAR(CURRENT_DATE())");
     $stmt->execute();
     $events_this_month = $stmt->fetch()['total'];
     
     // Check-in success rate (assuming successful check-ins vs total attempts)
-    $stmt = $db->prepare("SELECT COUNT(*) as successful FROM CheckIn WHERE status = 'checked_in'");
+    $stmt = $db->prepare("SELECT COUNT(*) as successful FROM checkin WHERE status = 'present'");
     $stmt->execute();
     $successful_checkins = $stmt->fetch()['successful'];
     

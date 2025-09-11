@@ -30,11 +30,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $db = getDB();
     
+    // SENIOR DEBUG: Log every request
+    error_log("RFID Queue Hit: " . date('Y-m-d H:i:s') . " from " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    error_log("POST data: " . print_r($_POST, true));
+    
     // Get RFID data from request
     $rfid = trim($_POST['rfid'] ?? '');
     $device_id = intval($_POST['device_id'] ?? 1);
     $source = $_POST['source'] ?? 'hardware';
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    
+    error_log("Parsed RFID: '$rfid', Device: $device_id, Source: '$source'");
     
     if (empty($rfid)) {
         throw new Exception('RFID tag is required');
@@ -91,25 +97,6 @@ try {
         VALUES (?, ?, ?, ?, NOW())
     ");
     $stmt->execute([$rfid, $device_id, $ip_address, $source]);
-    
-    // Also try the regular check-in process if this is meant for immediate check-in
-    $checkinResult = null;
-    if ($source === 'hardware') {
-        try {
-            // Call the regular RFID check-in process
-            $formData = [
-                'rfid' => $rfid,
-                'device_id' => $device_id
-            ];
-            
-            // Include the regular check-in logic but don't fail if it doesn't work
-            require_once '../api/rfid-checkin.php';
-            
-        } catch (Exception $e) {
-            // Log but don't fail - the queue entry is still valid
-            error_log('Regular check-in failed for queued RFID: ' . $e->getMessage());
-        }
-    }
     
     echo json_encode([
         'success' => true,

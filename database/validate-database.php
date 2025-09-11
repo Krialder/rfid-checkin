@@ -80,16 +80,22 @@ try {
     
     // Expected table structure
     $expectedTables = [
-        'Users' => 'Core user management table',
-        'Events' => 'Event management table', 
-        'CheckIn' => 'Check-in records table',
-        'RFIDDevices' => 'RFID device management table',
-        'ActivityLog' => 'User activity logging table',
-        'AccessLogs' => 'System access logging table',
-        'SystemSettings' => 'System configuration table',
-        'Notifications' => 'User notifications table',
-        'Reports' => 'Report management table',
-        'EventRegistration' => 'Event registration table',
+        'users' => 'Core user management table',
+        'events' => 'Event management table', 
+        'checkin' => 'Check-in records table',
+        'rfiddevices' => 'RFID device management table',
+        'activitylog' => 'User activity logging table',
+        'accesslogs' => 'System access logging table',
+        'system_settings' => 'System configuration table',
+        'notifications' => 'User notifications table',
+        'reports' => 'Report management table',
+        'eventregistration' => 'Event registration table',
+        'eventinstances' => 'Event instances table',
+        'eventgroupassignments' => 'Event group assignments table',
+        'usergroupmemberships' => 'User group memberships table',
+        'usergroups' => 'User groups table',
+        'holidays' => 'Holidays table',
+        'rfid_scan_queue' => 'RFID scan queue table',
         'password_resets' => 'Password reset tokens table'
     ];
     
@@ -117,12 +123,14 @@ try {
     
     $legacyTables = [];
     $legacyMappings = [
-        'users' => 'Users',
-        'events' => 'Events',
-        'checkins' => 'CheckIn', 
-        'user_groups' => 'UserGroups',
-        'rfid_devices' => 'RFIDDevices',
-        'system_settings' => 'SystemSettings'
+        'Users' => 'users',
+        'Events' => 'events',
+        'CheckIn' => 'checkin', 
+        'UserGroups' => 'usergroups',
+        'RFIDDevices' => 'rfiddevices',
+        'SystemSettings' => 'system_settings',
+        'ActivityLog' => 'activitylog',
+        'AccessLogs' => 'accesslogs'
     ];
     
     foreach ($legacyMappings as $oldName => $newName) {
@@ -182,15 +190,15 @@ try {
     echo "<div class='step'>";
     echo "<h2>👤 Data Validation</h2>";
     
-    if (in_array('Users', $existingTables)) {
-        $stmt = $db->query("SELECT COUNT(*) FROM Users WHERE role = 'admin'");
+    if (in_array('users', $existingTables)) {
+        $stmt = $db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
         $adminCount = $stmt->fetchColumn();
         
         if ($adminCount > 0) {
             echo "<div class='success'>✅ Admin users found: $adminCount</div>";
             
             // Show admin users
-            $stmt = $db->query("SELECT username, email, first_name, last_name, is_active FROM Users WHERE role = 'admin'");
+            $stmt = $db->query("SELECT username, email, first_name, last_name, is_active FROM users WHERE role = 'admin'");
             $admins = $stmt->fetchAll();
             
             echo "<h4>Admin Users:</h4>";
@@ -211,19 +219,19 @@ try {
             echo "<div class='error'>❌ No admin users found</div>";
         }
         
-        $stmt = $db->query("SELECT COUNT(*) FROM Users");
+        $stmt = $db->query("SELECT COUNT(*) FROM users");
         $totalUsers = $stmt->fetchColumn();
         echo "<div class='info'>📊 Total users: $totalUsers</div>";
     }
     
-    if (in_array('Events', $existingTables)) {
-        $stmt = $db->query("SELECT COUNT(*) FROM Events WHERE active = 1");
+    if (in_array('events', $existingTables)) {
+        $stmt = $db->query("SELECT COUNT(*) FROM events WHERE active = 1");
         $activeEvents = $stmt->fetchColumn();
         echo "<div class='info'>📅 Active events: $activeEvents</div>";
     }
     
-    if (in_array('CheckIn', $existingTables)) {
-        $stmt = $db->query("SELECT COUNT(*) FROM CheckIn");
+    if (in_array('checkin', $existingTables)) {
+        $stmt = $db->query("SELECT COUNT(*) FROM checkin");
         $totalCheckins = $stmt->fetchColumn();
         echo "<div class='info'>✅ Total check-ins: $totalCheckins</div>";
     }
@@ -285,7 +293,7 @@ try {
     }
     
     if (in_array('Users', $existingTables)) {
-        $stmt = $db->query("SELECT COUNT(*) FROM Users WHERE role = 'admin'");
+        $stmt = $db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
         $adminCount = $stmt->fetchColumn();
         
         if ($adminCount == 0) {

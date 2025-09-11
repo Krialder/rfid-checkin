@@ -50,12 +50,12 @@ class HolidayManager {
         
         try {
             // Remove existing holidays for this year
-            $stmt = $this->db->prepare("DELETE FROM Holidays WHERE year = ?");
+            $stmt = $this->db->prepare("DELETE FROM holidays WHERE year = ?");
             $stmt->execute([$year]);
             
             $holidays = $this->calculateHolidays($year);
             
-            $sql = "INSERT INTO Holidays (name, date, year, type, state_codes, description) VALUES (?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO holidays (name, date, year, type, state_codes, description) VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
             
             foreach ($holidays as $holiday) {
@@ -288,7 +288,7 @@ class HolidayManager {
         
         $stmt = $this->db->prepare("
             SELECT name, type, state_codes, description
-            FROM Holidays 
+            FROM holidays 
             WHERE $whereClause
         ");
         $stmt->execute($params);
@@ -310,7 +310,7 @@ class HolidayManager {
         $whereClause = implode(' AND ', $where);
         
         $stmt = $this->db->prepare("
-            SELECT * FROM Holidays 
+            SELECT * FROM holidays 
             WHERE $whereClause
             ORDER BY date
         ");
@@ -333,7 +333,7 @@ class HolidayManager {
         $whereClause = implode(' AND ', $where);
         
         $stmt = $this->db->prepare("
-            SELECT * FROM Holidays 
+            SELECT * FROM holidays 
             WHERE $whereClause
             ORDER BY date
         ");
@@ -347,7 +347,7 @@ class HolidayManager {
     public function addCustomHoliday($name, $date, $description = '', $stateCode = null) {
         $year = date('Y', strtotime($date));
         
-        $sql = "INSERT INTO Holidays (name, date, year, type, state_codes, description) 
+        $sql = "INSERT INTO holidays (name, date, year, type, state_codes, description) 
                 VALUES (?, ?, ?, 'custom', ?, ?)";
         
         $stmt = $this->db->prepare($sql);
@@ -366,7 +366,7 @@ class HolidayManager {
      * Update holiday status
      */
     public function updateHolidayStatus($holidayId, $isActive) {
-        $stmt = $this->db->prepare("UPDATE Holidays SET is_active = ? WHERE holiday_id = ?");
+        $stmt = $this->db->prepare("UPDATE holidays SET is_active = ? WHERE holiday_id = ?");
         $stmt->execute([$isActive, $holidayId]);
         return $stmt->rowCount() > 0;
     }
@@ -375,7 +375,7 @@ class HolidayManager {
      * Delete custom holiday
      */
     public function deleteCustomHoliday($holidayId) {
-        $stmt = $this->db->prepare("DELETE FROM Holidays WHERE holiday_id = ? AND type = 'custom'");
+        $stmt = $this->db->prepare("DELETE FROM holidays WHERE holiday_id = ? AND type = 'custom'");
         $stmt->execute([$holidayId]);
         return $stmt->rowCount() > 0;
     }
@@ -420,7 +420,7 @@ class HolidayManager {
                 type,
                 COUNT(*) as count,
                 GROUP_CONCAT(name ORDER BY date SEPARATOR ', ') as holidays
-            FROM Holidays 
+            FROM holidays 
             WHERE year = ? AND is_active = 1
             GROUP BY type
         ");

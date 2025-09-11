@@ -2,7 +2,7 @@
 require_once '../core/config.php';
 require_once '../core/database.php';
 r            // Update password
-            $stmt = $db->prepare("UPDATE Users SET password = ? WHERE user_id = ?");
+            $stmt = $db->prepare("UPDATE users SET password = ? WHERE user_id = ?");
             $stmt->execute([$passwordHash, $user['user_id']]);
             
             // Mark token as used
@@ -28,7 +28,7 @@ if ($token) {
         $stmt = $db->prepare("
             SELECT pr.user_id, pr.expires, u.username, u.first_name, u.email 
             FROM password_resets pr
-            JOIN Users u ON pr.user_id = u.user_id
+            JOIN users u ON pr.user_id = u.user_id
             WHERE pr.token = ? AND pr.expires > NOW() AND pr.used = 0
         ");
         $stmt->execute([$token]);
@@ -73,17 +73,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
             // Hash new password
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
             
-            // Update user password
-            $stmt = $pdo->prepare("UPDATE Users SET password = ? WHERE user_id = ?");
+                        // Update user password
+            $stmt = $db->prepare("UPDATE users SET password = ? WHERE user_id = ?");
             $stmt->execute([$hashedPassword, $user['user_id']]);
             
             // Mark token as used
-            $stmt = $pdo->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
+            $stmt = $db->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
             $stmt->execute([$token]);
             
             // Log the password reset
-            $stmt = $pdo->prepare("
-                INSERT INTO ActivityLog (user_id, action, details, ip_address) 
+            $stmt = $db->prepare("
+                INSERT INTO activitylog (user_id, action, details, ip_address) 
                 VALUES (?, 'password_reset_complete', 'Password successfully reset', ?)
             ");
             $stmt->execute([

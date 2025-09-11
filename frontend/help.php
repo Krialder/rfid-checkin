@@ -455,12 +455,12 @@ $db = getDB();
                         <li style="margin-bottom: 0.25rem;"><strong>Last Update:</strong> August 2025</li>
                         <li style="margin-bottom: 0.25rem;"><strong>Uptime:</strong> 99.9%</li>
                         <li style="margin-bottom: 0.25rem;"><strong>Users:</strong> <?php 
-                            $stmt = $db->prepare("SELECT COUNT(*) FROM Users WHERE is_active = 1");
+                            $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE is_active = 1");
                             $stmt->execute();
                             echo $stmt->fetchColumn(); 
                         ?></li>
                         <li style="margin-bottom: 0.25rem;"><strong>Events:</strong> <?php 
-                            $stmt = $db->prepare("SELECT COUNT(*) FROM Events");
+                            $stmt = $db->prepare("SELECT COUNT(*) FROM events");
                             $stmt->execute();
                             echo $stmt->fetchColumn(); 
                         ?></li>

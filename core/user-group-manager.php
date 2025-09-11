@@ -40,7 +40,7 @@ class UserGroupManager {
      */
     public function createGroup($groupData) {
         try {
-            $sql = "INSERT INTO UserGroups (group_name, description, group_type, created_by) 
+            $sql = "INSERT INTO usergroups (group_name, description, group_type, created_by) 
                     VALUES (?, ?, ?, ?)";
             
             $stmt = $this->db->prepare($sql);
@@ -85,7 +85,7 @@ class UserGroupManager {
     public function addUserToGroup($userId, $groupId, $role = 'member', $addedBy = null) {
         try {
             // Check if user is already in the group
-            $checkSQL = "SELECT membership_id, is_active FROM UserGroupMemberships 
+            $checkSQL = "SELECT membership_id, is_active FROM usergroupmemberships 
                         WHERE user_id = ? AND group_id = ?";
             $stmt = $this->db->prepare($checkSQL);
             $stmt->execute([$userId, $groupId]);
@@ -96,7 +96,7 @@ class UserGroupManager {
                     return ['success' => false, 'error' => 'User is already a member of this group'];
                 } else {
                     // Reactivate existing membership
-                    $updateSQL = "UPDATE UserGroupMemberships 
+                    $updateSQL = "UPDATE usergroupmemberships 
                                  SET is_active = TRUE, role = ?, added_by = ?, joined_at = NOW() 
                                  WHERE user_id = ? AND group_id = ?";
                     $stmt = $this->db->prepare($updateSQL);
@@ -107,7 +107,7 @@ class UserGroupManager {
             }
             
             // Add new membership
-            $sql = "INSERT INTO UserGroupMemberships (user_id, group_id, role, added_by) 
+            $sql = "INSERT INTO usergroupmemberships (user_id, group_id, role, added_by) 
                     VALUES (?, ?, ?, ?)";
             
             $stmt = $this->db->prepare($sql);
@@ -133,7 +133,7 @@ class UserGroupManager {
      */
     public function removeUserFromGroup($userId, $groupId) {
         try {
-            $sql = "UPDATE UserGroupMemberships 
+            $sql = "UPDATE usergroupmemberships 
                     SET is_active = FALSE 
                     WHERE user_id = ? AND group_id = ?";
             
@@ -164,12 +164,12 @@ class UserGroupManager {
             $this->db->beginTransaction();
             
             // Remove existing assignments
-            $deleteSQL = "DELETE FROM EventGroupAssignments WHERE event_id = ?";
+            $deleteSQL = "DELETE FROM eventgroupassignments WHERE event_id = ?";
             $stmt = $this->db->prepare($deleteSQL);
             $stmt->execute([$eventId]);
             
             // Add new assignments
-            $insertSQL = "INSERT INTO EventGroupAssignments (event_id, group_id, assigned_by) 
+            $insertSQL = "INSERT INTO eventgroupassignments (event_id, group_id, assigned_by) 
                          VALUES (?, ?, ?)";
             $stmt = $this->db->prepare($insertSQL);
             
@@ -207,10 +207,10 @@ class UserGroupManager {
             $sql = "SELECT DISTINCT u.user_id, u.username, u.first_name, u.last_name, u.email,
                            GROUP_CONCAT(ug.group_name SEPARATOR ', ') as group_names,
                            COUNT(DISTINCT ugm.group_id) as group_count
-                    FROM Users u
-                    INNER JOIN UserGroupMemberships ugm ON u.user_id = ugm.user_id
-                    INNER JOIN UserGroups ug ON ugm.group_id = ug.group_id
-                    INNER JOIN EventGroupAssignments ega ON ug.group_id = ega.group_id
+                    FROM users u
+                    INNER JOIN usergroupmemberships ugm ON u.user_id = ugm.user_id
+                    INNER JOIN usergroups ug ON ugm.group_id = ug.group_id
+                    INNER JOIN eventgroupassignments ega ON ug.group_id = ega.group_id
                     WHERE ega.event_id = ? 
                       AND ugm.is_active = TRUE 
                       AND ug.is_active = TRUE 
@@ -238,7 +238,7 @@ class UserGroupManager {
     public function getAllGroups() {
         try {
             $sql = "SELECT group_id, group_name, description, group_type, created_at, is_active
-                    FROM UserGroups 
+                    FROM usergroups 
                     WHERE is_active = TRUE
                     ORDER BY group_name";
             
@@ -261,7 +261,7 @@ class UserGroupManager {
     public function getAllUsers() {
         try {
             $sql = "SELECT user_id, username, first_name, last_name, email, department, is_active
-                    FROM Users 
+                    FROM users 
                     WHERE is_active = TRUE
                     ORDER BY last_name, first_name";
             
@@ -289,9 +289,9 @@ class UserGroupManager {
                            SUM(CASE WHEN ugm.role = 'admin' THEN 1 ELSE 0 END) as admin_count,
                            SUM(CASE WHEN ugm.role = 'leader' THEN 1 ELSE 0 END) as leader_count,
                            CONCAT(creator.first_name, ' ', creator.last_name) as created_by_name
-                    FROM UserGroups ug
-                    LEFT JOIN UserGroupMemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
-                    LEFT JOIN Users creator ON ug.created_by = creator.user_id
+                    FROM usergroups ug
+                    LEFT JOIN usergroupmemberships ugm ON ug.group_id = ugm.group_id AND ugm.is_active = TRUE
+                    LEFT JOIN users creator ON ug.created_by = creator.user_id
                     WHERE ug.is_active = TRUE
                     GROUP BY ug.group_id
                     ORDER BY ug.group_name";
@@ -317,8 +317,8 @@ class UserGroupManager {
         try {
             $sql = "SELECT ug.group_id, ug.group_name, ug.description, ug.group_type,
                            ugm.role, ugm.joined_at
-                    FROM UserGroups ug
-                    INNER JOIN UserGroupMemberships ugm ON ug.group_id = ugm.group_id
+                    FROM usergroups ug
+                    INNER JOIN usergroupmemberships ugm ON ug.group_id = ugm.group_id
                     WHERE ugm.user_id = ? 
                       AND ugm.is_active = TRUE 
                       AND ug.is_active = TRUE
@@ -346,9 +346,9 @@ class UserGroupManager {
             $sql = "SELECT u.user_id, u.username, u.first_name, u.last_name, u.email,
                            u.department, ugm.role, ugm.joined_at,
                            CONCAT(adder.first_name, ' ', adder.last_name) as added_by_name
-                    FROM Users u
-                    INNER JOIN UserGroupMemberships ugm ON u.user_id = ugm.user_id
-                    LEFT JOIN Users adder ON ugm.added_by = adder.user_id
+                    FROM users u
+                    INNER JOIN usergroupmemberships ugm ON u.user_id = ugm.user_id
+                    LEFT JOIN users adder ON ugm.added_by = adder.user_id
                     WHERE ugm.group_id = ? 
                       AND ugm.is_active = TRUE
                     ORDER BY ugm.role DESC, u.last_name, u.first_name";
@@ -377,10 +377,10 @@ class UserGroupManager {
                            e.is_recurring, e.capacity, ega.assigned_at,
                            CONCAT(assigner.first_name, ' ', assigner.last_name) as assigned_by_name,
                            COUNT(DISTINCT ugm.user_id) as registered_members
-                    FROM Events e
-                    INNER JOIN EventGroupAssignments ega ON e.event_id = ega.event_id
-                    LEFT JOIN Users assigner ON ega.assigned_by = assigner.user_id
-                    LEFT JOIN UserGroupMemberships ugm ON ega.group_id = ugm.group_id AND ugm.is_active = TRUE
+                    FROM events e
+                    INNER JOIN eventgroupassignments ega ON e.event_id = ega.event_id
+                    LEFT JOIN users assigner ON ega.assigned_by = assigner.user_id
+                    LEFT JOIN usergroupmemberships ugm ON ega.group_id = ugm.group_id AND ugm.is_active = TRUE
                     WHERE ega.group_id = ? 
                       AND ega.is_active = TRUE
                       AND e.active = TRUE
@@ -424,7 +424,7 @@ class UserGroupManager {
             
             $updateValues[] = $groupId;
             
-            $sql = "UPDATE UserGroups SET " . implode(', ', $updateFields) . " WHERE group_id = ?";
+            $sql = "UPDATE usergroups SET " . implode(', ', $updateFields) . " WHERE group_id = ?";
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute($updateValues);
             
@@ -450,17 +450,17 @@ class UserGroupManager {
             $this->db->beginTransaction();
             
             // Deactivate group
-            $sql = "UPDATE UserGroups SET is_active = FALSE WHERE group_id = ?";
+            $sql = "UPDATE usergroups SET is_active = FALSE WHERE group_id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$groupId]);
             
             // Deactivate all memberships
-            $sql = "UPDATE UserGroupMemberships SET is_active = FALSE WHERE group_id = ?";
+            $sql = "UPDATE usergroupmemberships SET is_active = FALSE WHERE group_id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$groupId]);
             
             // Deactivate all event assignments
-            $sql = "UPDATE EventGroupAssignments SET is_active = FALSE WHERE group_id = ?";
+            $sql = "UPDATE eventgroupassignments SET is_active = FALSE WHERE group_id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$groupId]);
             
@@ -484,24 +484,24 @@ class UserGroupManager {
             $stats = [];
             
             // Total groups
-            $sql = "SELECT COUNT(*) as total_groups FROM UserGroups WHERE is_active = TRUE";
+            $sql = "SELECT COUNT(*) as total_groups FROM usergroups WHERE is_active = TRUE";
             $stmt = $this->db->query($sql);
             $stats['total_groups'] = $stmt->fetchColumn();
             
             // Total active memberships
-            $sql = "SELECT COUNT(*) as total_memberships FROM UserGroupMemberships WHERE is_active = TRUE";
+            $sql = "SELECT COUNT(*) as total_memberships FROM usergroupmemberships WHERE is_active = TRUE";
             $stmt = $this->db->query($sql);
             $stats['total_memberships'] = $stmt->fetchColumn();
             
             // Events with group assignments
-            $sql = "SELECT COUNT(DISTINCT event_id) as events_with_groups FROM EventGroupAssignments WHERE is_active = TRUE";
+            $sql = "SELECT COUNT(DISTINCT event_id) as events_with_groups FROM eventgroupassignments WHERE is_active = TRUE";
             $stmt = $this->db->query($sql);
             $stats['events_with_groups'] = $stmt->fetchColumn();
             
             // Average group size
             $sql = "SELECT AVG(member_count) as avg_group_size FROM (
                         SELECT COUNT(*) as member_count 
-                        FROM UserGroupMemberships 
+                        FROM usergroupmemberships 
                         WHERE is_active = TRUE 
                         GROUP BY group_id
                     ) as group_sizes";

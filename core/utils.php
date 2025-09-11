@@ -22,7 +22,7 @@ class Utilities {
             $db = getDB();
             
             $stmt = $db->prepare("
-                INSERT INTO ActivityLog (user_id, action, details, ip_address, user_agent, metadata, timestamp)
+                INSERT INTO activitylog (user_id, action, details, ip_address, user_agent, metadata, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, NOW())
             ");
             

@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get user settings from preferences JSON field
 try {
-    $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
+    $stmt = $db->prepare("SELECT preferences FROM users WHERE user_id = ?");
     $stmt->execute([$user['user_id']]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -110,7 +110,7 @@ $stmt = $db->prepare("
         ip_address,
         user_agent,
         CASE WHEN status = 'success' THEN 1 ELSE 0 END as success
-    FROM AccessLogs 
+    FROM accesslogs 
     WHERE user_id = ? AND action IN ('login', 'failed_login')
     ORDER BY timestamp DESC 
     LIMIT 10
@@ -138,7 +138,7 @@ function changePassword($db, $user_id, $data) {
         }
         
         // Check current password
-        $stmt = $db->prepare("SELECT password FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT password FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $stored_hash = $stmt->fetchColumn();
         
@@ -148,12 +148,12 @@ function changePassword($db, $user_id, $data) {
         
         // Update password
         $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
-        $stmt = $db->prepare("UPDATE Users SET password = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?");
         $stmt->execute([$new_hash, $user_id]);
         
         // Log password change
         $stmt = $db->prepare("
-            INSERT INTO ActivityLog (user_id, action, details, timestamp) 
+            INSERT INTO activitylog (user_id, action, details, timestamp) 
             VALUES (?, 'password_change', 'Password changed successfully', NOW())
         ");
         $stmt->execute([$user_id]);
@@ -173,7 +173,7 @@ function updateNotificationSettings($db, $user_id, $data) {
         $event_reminders = isset($data['event_reminders']) ? 1 : 0;
         
         // Get current preferences
-        $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT preferences FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -185,7 +185,7 @@ function updateNotificationSettings($db, $user_id, $data) {
         $preferences['event_reminders'] = $event_reminders;
         
         // Save back to database
-        $stmt = $db->prepare("UPDATE Users SET preferences = ? WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET preferences = ? WHERE user_id = ?");
         $stmt->execute([json_encode($preferences), $user_id]);
         
         return ['success' => true, 'message' => 'Notification settings updated successfully!'];
@@ -207,7 +207,7 @@ function updatePrivacySettings($db, $user_id, $data) {
         }
         
         // Get current preferences
-        $stmt = $db->prepare("SELECT preferences FROM Users WHERE user_id = ?");
+        $stmt = $db->prepare("SELECT preferences FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -218,7 +218,7 @@ function updatePrivacySettings($db, $user_id, $data) {
         $preferences['share_analytics'] = $share_analytics;
         
         // Save back to database
-        $stmt = $db->prepare("UPDATE Users SET preferences = ? WHERE user_id = ?");
+        $stmt = $db->prepare("UPDATE users SET preferences = ? WHERE user_id = ?");
         $stmt->execute([json_encode($preferences), $user_id]);
         
         return ['success' => true, 'message' => 'Privacy settings updated successfully!'];
