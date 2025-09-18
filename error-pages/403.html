@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Forbidden - RFID Check-in System</title>
+    <link rel="stylesheet" href="/rfid-checkin/assets/css/main.css">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--error-bg) 0%, var(--error-light) 100%);
+        }
+        
+        .error-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: var(--space-8);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            color: var(--error-color);
+            margin-bottom: var(--space-4);
+            display: block;
+        }
+        
+        .error-code {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--error-color);
+            margin-bottom: var(--space-2);
+        }
+        
+        .error-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+        
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+            line-height: 1.6;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-home {
+            background: var(--primary-color);
+            color: var(--primary-contrast);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-home:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-back {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .btn-back:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-hover);
+        }
+        
+        .security-notice {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-top: var(--space-6);
+        }
+        
+        .security-notice h4 {
+            color: var(--warning-color);
+            margin: 0 0 var(--space-2) 0;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+        }
+        
+        .security-notice p {
+            color: var(--warning-text);
+            margin: 0;
+            font-size: var(--font-size-sm);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <span class="error-icon">🛡️</span>
+            <div class="error-code">403</div>
+            <h1 class="error-title">Access Forbidden</h1>
+            <p class="error-message">
+                You don't have permission to access this resource. This could be due to insufficient privileges or a security restriction.
+            </p>
+            
+            <div class="error-actions">
+                <a href="/rfid-checkin/" class="btn-home">Return Home</a>
+                <button onclick="window.history.back()" class="btn-back">Go Back</button>
+            </div>
+            
+            <div class="security-notice">
+                <h4>🔒 Security Notice</h4>
+                <p>This incident has been logged for security purposes. If you believe this is an error, please contact your system administrator.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Prevent back button caching
+        if (window.history && window.history.pushState) {
+            window.history.pushState('forward', null, window.location.href);
+            window.addEventListener('popstate', function() {
+                window.history.pushState('forward', null, window.location.href);
+            });
+        }
+    </script>
+</body>
+</html>

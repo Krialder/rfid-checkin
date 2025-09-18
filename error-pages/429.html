@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Too Many Requests - RFID Check-in System</title>
+    <link rel="stylesheet" href="/rfid-checkin/assets/css/main.css">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--warning-bg) 0%, var(--warning-light) 100%);
+        }
+        
+        .error-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: var(--space-8);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            color: var(--warning-color);
+            margin-bottom: var(--space-4);
+            display: block;
+        }
+        
+        .error-code {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--warning-color);
+            margin-bottom: var(--space-2);
+        }
+        
+        .error-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+        
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+            line-height: 1.6;
+        }
+        
+        .countdown-container {
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin: var(--space-4) 0;
+        }
+        
+        .countdown-timer {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--info-color);
+            margin-bottom: var(--space-2);
+        }
+        
+        .countdown-text {
+            color: var(--info-text);
+            font-size: var(--font-size-sm);
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-retry {
+            background: var(--primary-color);
+            color: var(--primary-contrast);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-retry:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-retry:disabled {
+            background: var(--bg-disabled);
+            color: var(--text-disabled);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-home {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .btn-home:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-hover);
+        }
+        
+        .rate-limit-info {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-top: var(--space-6);
+            text-align: left;
+        }
+        
+        .rate-limit-info h4 {
+            color: var(--warning-color);
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            text-align: center;
+        }
+        
+        .rate-limit-info ul {
+            color: var(--warning-text);
+            margin: 0;
+            padding-left: var(--space-5);
+            font-size: var(--font-size-sm);
+        }
+        
+        .rate-limit-info li {
+            margin-bottom: var(--space-1);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <span class="error-icon">⏱️</span>
+            <div class="error-code">429</div>
+            <h1 class="error-title">Too Many Requests</h1>
+            <p class="error-message">
+                You've made too many requests in a short period. Please wait a moment before trying again.
+            </p>
+            
+            <div class="countdown-container">
+                <div class="countdown-timer" id="countdown">5:00</div>
+                <div class="countdown-text">Please wait before trying again</div>
+            </div>
+            
+            <div class="error-actions">
+                <button id="retryBtn" class="btn-retry" disabled onclick="window.location.reload()">
+                    Retry Now
+                </button>
+                <a href="/rfid-checkin/" class="btn-home">Return Home</a>
+            </div>
+            
+            <div class="rate-limit-info">
+                <h4>⚡ Rate Limiting Information</h4>
+                <ul>
+                    <li>Login attempts: Maximum 5 per 5 minutes</li>
+                    <li>API requests: Maximum 100 per 5 minutes</li>
+                    <li>File uploads: Maximum 10 per minute</li>
+                    <li>Password resets: Maximum 3 per hour</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Countdown timer
+        let timeLeft = 300; // 5 minutes in seconds
+        const countdownElement = document.getElementById('countdown');
+        const retryBtn = document.getElementById('retryBtn');
+        
+        function updateCountdown() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            countdownElement.textContent = formattedTime;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                retryBtn.disabled = false;
+                retryBtn.textContent = 'Retry Now';
+                countdownElement.textContent = 'Ready to retry!';
+                document.querySelector('.countdown-text').textContent = 'You can now try again';
+            }
+            
+            timeLeft--;
+        }
+        
+        // Update countdown every second
+        const countdownInterval = setInterval(updateCountdown, 1000);
+        updateCountdown(); // Initial call
+        
+        // Prevent back button caching
+        if (window.history && window.history.pushState) {
+            window.history.pushState('forward', null, window.location.href);
+            window.addEventListener('popstate', function() {
+                window.history.pushState('forward', null, window.location.href);
+            });
+        }
+    </script>
+</body>
+</html>

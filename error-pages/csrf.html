@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Token Error - RFID Check-in System</title>
+    <link rel="stylesheet" href="/rfid-checkin/assets/css/main.css">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--error-bg) 0%, var(--error-light) 100%);
+        }
+        
+        .error-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: var(--space-8);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            color: var(--error-color);
+            margin-bottom: var(--space-4);
+            display: block;
+        }
+        
+        .error-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+        
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+            line-height: 1.6;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-6);
+        }
+        
+        .btn-refresh {
+            background: var(--primary-color);
+            color: var(--primary-contrast);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-refresh:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-home {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-normal);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .btn-home:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-hover);
+        }
+        
+        .csrf-info {
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            text-align: left;
+        }
+        
+        .csrf-info h4 {
+            color: var(--info-color);
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            text-align: center;
+        }
+        
+        .csrf-info p {
+            color: var(--info-text);
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+        }
+        
+        .csrf-info ul {
+            color: var(--info-text);
+            margin: 0;
+            padding-left: var(--space-5);
+            font-size: var(--font-size-sm);
+        }
+        
+        .csrf-info li {
+            margin-bottom: var(--space-1);
+        }
+        
+        .auto-refresh-notice {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            margin-top: var(--space-4);
+            font-size: var(--font-size-sm);
+            color: var(--success-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <span class="error-icon">🔒</span>
+            <h1 class="error-title">Security Token Error</h1>
+            <p class="error-message">
+                The security token for this form has expired or is invalid. This is a security measure to protect against unauthorized requests.
+            </p>
+            
+            <div class="error-actions">
+                <button onclick="window.location.reload()" class="btn-refresh">
+                    🔄 Refresh Page
+                </button>
+                <a href="/rfid-checkin/" class="btn-home">Return Home</a>
+            </div>
+            
+            <div class="csrf-info">
+                <h4>🛡️ What is a Security Token?</h4>
+                <p>
+                    Security tokens (CSRF tokens) protect against unauthorized form submissions and ensure that requests come from legitimate users.
+                </p>
+                
+                <p><strong>Common causes of this error:</strong></p>
+                <ul>
+                    <li>The page was open for too long (tokens expire for security)</li>
+                    <li>You navigated back to a form after submitting it</li>
+                    <li>Multiple browser tabs with the same form</li>
+                    <li>Browser cache or session issues</li>
+                </ul>
+                
+                <p><strong>How to resolve:</strong></p>
+                <ul>
+                    <li>Refresh the page to get a new security token</li>
+                    <li>Make sure JavaScript is enabled in your browser</li>
+                    <li>Clear your browser cache and cookies if the problem persists</li>
+                    <li>Avoid using the back button after form submissions</li>
+                </ul>
+            </div>
+            
+            <div class="auto-refresh-notice">
+                ✅ <strong>Quick Fix:</strong> Click "Refresh Page" above to automatically get a new security token and continue where you left off.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-refresh after 10 seconds if user doesn't interact
+        let autoRefreshTimer = setTimeout(function() {
+            if (confirm('Would you like to automatically refresh the page to get a new security token?')) {
+                window.location.reload();
+            }
+        }, 10000);
+        
+        // Cancel auto-refresh if user interacts with the page
+        document.addEventListener('click', function() {
+            clearTimeout(autoRefreshTimer);
+        });
+        
+        document.addEventListener('keydown', function() {
+            clearTimeout(autoRefreshTimer);
+        });
+        
+        // Prevent back button caching
+        if (window.history && window.history.pushState) {
+            window.history.pushState('forward', null, window.location.href);
+            window.addEventListener('popstate', function() {
+                window.history.pushState('forward', null, window.location.href);
+            });
+        }
+    </script>
+</body>
+</html>

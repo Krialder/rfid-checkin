@@ -1,0 +1,118 @@
+/**
+ * Email Template Stylesheets
+ * 
+ * Comprehensive CSS styling for HTML email templates used throughout
+ * the RFID Check-in System. Includes responsive layouts, professional
+ * branding, and cross-client compatibility.
+ * 
+ * @package    RFID Check-in System
+ * @subpackage Email Templates
+ * @version    2.0.0
+ * @author     Senior Developer Team
+ * @since      1.0.0
+ */
+
+/* =============================================================================
+   BASE EMAIL STRUCTURE
+   Core layout and typography for all email templates
+   ============================================================================= */
+/**
+ * Primary email body container
+ * Sets consistent typography and base styling across all email clients
+ */
+.email-body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+/**
+ * Email content wrapper with responsive max-width
+ * Ensures optimal readability across different screen sizes
+ */
+.email-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/**
+ * Email header section with branded gradient background
+ * Provides consistent branding and visual hierarchy
+ */
+.email-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px 8px 0 0;
+}
+
+/**
+ * Main email content area with subtle background
+ * Optimized for readability and professional appearance
+ */
+.email-content {
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 0 0 8px 8px;
+}
+
+/* =============================================================================
+   INTERACTIVE ELEMENTS
+   Call-to-action buttons and interactive components
+   ============================================================================= */
+
+/**
+ * Primary action button with branded styling
+ * Designed for high visibility and accessibility compliance
+ */
+.email-button {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+/**
+ * Email footer with legal and unsubscribe information
+ * Maintains compliance with email marketing regulations
+ */
+.email-footer {
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+/* =============================================================================
+   UTILITY COMPONENTS
+   Reusable styling elements for enhanced email formatting
+   ============================================================================= */
+
+/**
+ * Inline code display for verification codes and technical information
+ * Ensures consistent monospace presentation across email clients
+ */
+.email-code {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+/**
+ * Visual content separator for improved content organization
+ * Provides subtle section breaks without overwhelming the design
+ */
+.email-divider {
+    height: 1px;
+    background: #dee2e6;
+    margin: 20px 0;
+    border: none;
+}

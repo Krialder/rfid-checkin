@@ -1,0 +1,40 @@
+[
+    {
+        "execution_time": 0.012524127960205078,
+        "memory_usage": 2097152,
+        "memory_peak": 2097152,
+        "memory_delta": 0,
+        "queries_executed": 0,
+        "cache_operations": 0,
+        "cache_stats": {
+            "hits": 0,
+            "misses": 0,
+            "writes": 0,
+            "deletes": 0
+        },
+        "slow_queries": [],
+        "cache_hit_ratio": 0,
+        "timestamp": 1758008427,
+        "page": "unknown",
+        "user_agent": "unknown"
+    },
+    {
+        "execution_time": 0.3138430118560791,
+        "memory_usage": 2097152,
+        "memory_peak": 2097152,
+        "memory_delta": 0,
+        "queries_executed": 0,
+        "cache_operations": 0,
+        "cache_stats": {
+            "hits": 0,
+            "misses": 0,
+            "writes": 0,
+            "deletes": 0
+        },
+        "slow_queries": [],
+        "cache_hit_ratio": 0,
+        "timestamp": 1758008517,
+        "page": "unknown",
+        "user_agent": "unknown"
+    }
+]
