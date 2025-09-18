@@ -1,17 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * RFID Check-in System - Main Entry Point
  * 
- * Production-level PHP application entry point for the RFID check-in system.
+ * Application entry point for the RFID check-in system.
  * This file bootstraps the application and handles all incoming requests.
  * 
  * @package RfidCheckin
  * @version 2.0.0
- * @author Senior Development Team
  */
-
-declare(strict_types=1);
 
 // Define application constants
 define('APP_START_TIME', microtime(true));
@@ -41,7 +40,6 @@ spl_autoload_register(function ($className) {
 
 // Import the main application class
 use RfidCheckin\Application;
-use Exception;
 
 try {
     // Create and run the application
@@ -52,7 +50,14 @@ try {
         $app->shutdown();
     });
     
-    // Run the application
+    
+// Debug mode for testing
+if (isset($_GET['debug']) || isset($_SERVER['DEBUG_BOOTSTRAP'])) {
+    echo '<h2>Bootstrap Debug Mode</h2>';
+    echo '<p>Bootstrap started at: ' . date('Y-m-d H:i:s') . '</p>';
+}
+
+// Run the application
     $app->run();
     
 } catch (Exception $e) {

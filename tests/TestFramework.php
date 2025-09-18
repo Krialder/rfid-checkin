@@ -17,14 +17,11 @@
  * @version 1.0.0
  */
 
-require_once __DIR__ . '/../core/config.php';
-require_once __DIR__ . '/../core/database.php';
-require_once __DIR__ . '/../core/ErrorHandler.php';
+// Use the application bootstrap for proper initialization
+require_once __DIR__ . '/../bootstrap.php';
 
 class TestFramework {
     private static $instance = null;
-    private $errorHandler;
-    private $db;
     private $testResults = [];
     private $currentSuite = '';
     private $startTime;
@@ -34,8 +31,7 @@ class TestFramework {
     private $failCount = 0;
     
     private function __construct() {
-        $this->errorHandler = ErrorHandler::getInstance();
-        $this->db = getDB();
+        // Modern architecture doesn't need these legacy references
         $this->startTime = microtime(true);
         $this->memoryStart = memory_get_usage();
     }

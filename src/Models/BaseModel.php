@@ -12,7 +12,6 @@ namespace RfidCheckin\Models;
  * 
  * @package RfidCheckin\Models
  * @version 1.0.0
- * @author Senior Development Team
  */
 abstract class BaseModel
 {

@@ -623,22 +623,21 @@ try {
     }
     logMessage("System settings inserted");
     
-    // Insert legacy system settings for code compatibility
-    $legacySettingsData = [
-        ['system_name', 'RFID Check-in System', 'Name of the system'],
-        ['rfid_registration_mode', '0', 'Enable RFID registration mode for accepting unregistered tags'],
-        ['max_login_attempts', '5', 'Maximum login attempts before lockout'],
-        ['session_timeout', '3600', 'Session timeout in seconds'],
-        ['company_name', 'Your Company Name', 'Company name for branding']
+    // Insert additional legacy settings for code compatibility (avoiding duplicates)
+    $additionalSettingsData = [
+        ['auto_logout_time', '1800', 'string', 'Automatic logout time in seconds', 'security', 0],
+        ['enable_notifications', 'true', 'boolean', 'Enable system notifications', 'features', 0],
+        ['backup_retention_days', '30', 'number', 'Number of days to retain backups', 'maintenance', 0],
+        ['debug_mode', 'false', 'boolean', 'Enable debug mode for troubleshooting', 'system', 0]
     ];
     
-    $legacySettingsSQL = "INSERT INTO system_settings (setting_key, setting_value, description) VALUES (?, ?, ?)";
-    $stmt = $pdo->prepare($legacySettingsSQL);
+    $additionalSettingsSQL = "INSERT INTO system_settings (setting_key, setting_value, setting_type, description, category, is_public) VALUES (?, ?, ?, ?, ?, ?)";
+    $stmt = $pdo->prepare($additionalSettingsSQL);
     
-    foreach ($legacySettingsData as $setting) {
+    foreach ($additionalSettingsData as $setting) {
         $stmt->execute($setting);
     }
-    logMessage("Legacy system settings inserted");
+    logMessage("Additional system settings inserted");
     
     // Insert sample RFID device
     $deviceSQL = "INSERT INTO rfiddevices (device_name, device_serial, ip_address, location, status) VALUES (?, ?, ?, ?, ?)";

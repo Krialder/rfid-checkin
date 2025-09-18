@@ -438,4 +438,20 @@ class MiddlewareManager
         
         return $profile;
     }
+
+    /**
+     * Convenience method: add middleware (alias for addGlobalMiddleware)
+     */
+    public function add(string $middleware): void
+    {
+        $this->addGlobalMiddleware($middleware);
+    }
+
+    /**
+     * Convenience method: run middleware (alias for process)
+     */
+    public function run(callable $finalHandler): void
+    {
+        $this->process($finalHandler);
+    }
 }

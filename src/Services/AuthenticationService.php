@@ -26,6 +26,14 @@ class AuthenticationService
     private array $config;
 
     /**
+     * Check if we're in a context where sessions are available
+     */
+    private function isSessionAvailable(): bool
+    {
+        return php_sapi_name() !== 'cli' && php_sapi_name() !== 'cli-server';
+    }
+
+    /**
      * Private constructor for singleton pattern
      */
     private function __construct()
@@ -67,6 +75,11 @@ class AuthenticationService
      */
     private function initializeSession(): void
     {
+        // Skip session handling in CLI context
+        if (!$this->isSessionAvailable()) {
+            return;
+        }
+        
         if (session_status() === PHP_SESSION_NONE) {
             // Configure secure session settings
             ini_set('session.cookie_httponly', '1');
@@ -106,6 +119,11 @@ class AuthenticationService
      */
     private function regenerateSessionId(): void
     {
+        // Skip session operations in CLI context
+        if (!$this->isSessionAvailable()) {
+            return;
+        }
+        
         session_regenerate_id(true);
         $_SESSION['last_regenerate'] = time();
         $_SESSION['fingerprint'] = $this->generateSessionFingerprint();
@@ -161,6 +179,20 @@ class AuthenticationService
                 throw new Exception('Session expired due to inactivity');
             }
         }
+    }
+
+    /**
+     * Authenticate user with email/username and password
+     * 
+     * @param string $identifier Email or username
+     * @param string $password Plain text password
+     * @param bool $rememberMe Whether to extend session
+     * @return array Authentication result
+     * @throws Exception If authentication fails
+     */
+    public function authenticate(string $identifier, string $password, bool $rememberMe = false): array
+    {
+        return $this->login($identifier, $password, $rememberMe);
     }
 
     /**
@@ -392,6 +424,20 @@ class AuthenticationService
         }
         
         return $this->currentUser ? $this->sanitizeUserData($this->currentUser) : null;
+    }
+
+    /**
+     * Get current authenticated user ID
+     * 
+     * @return int|null User ID or null if not authenticated
+     */
+    public function getCurrentUserId(): ?int
+    {
+        if (!$this->isAuthenticated()) {
+            return null;
+        }
+        
+        return $_SESSION['user_id'] ?? null;
     }
 
     /**

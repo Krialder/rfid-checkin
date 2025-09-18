@@ -1,123 +1,161 @@
 # RFID Check-in System
 
-A RFID-based attendance and check-in system built with PHP, featuring ESP32 hardware integration, modern web interfaces, and robust data management capabilities.
+A modern, enterprise-grade RFID-based attendance and check-in system built with PHP 8.1+, featuring ESP32 hardware integration, service-oriented architecture, and comprehensive data management capabilities.
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
-![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg)
+![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)
+![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4.svg)
+![Architecture](https://img.shields.io/badge/Architecture-Service--Based-green.svg)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [🚀 Modern Architecture](#-modern-architecture)
 - [Features](#features)
-- [System Architecture](#system-architecture)
-- [Requirements](#requirements)
-- [Installation](#installation)
+- [System Requirements](#system-requirements)
+- [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Hardware Setup](#hardware-setup)
-- [Usage](#usage)
 - [API Documentation](#api-documentation)
+- [Development](#development)
+- [Migration Guide](#migration-guide)
 - [Testing](#testing)
-- [Performance](#performance)
+- [Performance & Monitoring](#performance--monitoring)
 - [Security](#security)
-- [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## 🎯 Overview
 
-The RFID Check-in System is a attendance management solution designed for organizations that need reliable, scalable, and secure check-in/check-out functionality. The system combines RFID hardware integration with a modern web interface to provide seamless user experiences for both administrators and end-users.
+The RFID Check-in System is an attendance management solution built with modern PHP patterns. The system has been completely refactored to use a clean service-based architecture with proper separation of concerns.
+
+### 🔧 Recent Modernization (v3.1.0)
+
+This system has undergone a complete architectural transformation:
+
+- ✅ **Single Entry Point**: Eliminated dual entry point conflicts (`bootstrap.php` only)
+- ✅ **Service Architecture**: Modern namespaced services (`RfidCheckin\Services\*`)
+- ✅ **Environment Config**: Centralized configuration with environment variables
+- ✅ **Legacy Removal**: Eliminated all legacy core files and dependencies
+- ✅ **Modern Patterns**: Dependency injection, lazy loading, singleton patterns
+- ✅ **Better Error Handling**: Environment-aware error display and structured logging
 
 ### Key Capabilities
 
-- **RFID Hardware Integration**: Native ESP32 RFID reader support with real-time communication
-- **Dual Architecture**: Modern MVC architecture alongside legacy code for migration flexibility
-- **Enterprise Features**: User management, event scheduling, reporting, and analytics
-- **Security-First**: Comprehensive security measures including CSRF protection, input validation, and secure authentication
-- **Performance Optimized**: Built-in caching, query optimization, and asset compression
-- **Mobile Responsive**: Full mobile support with progressive web app capabilities
+- **🏗️ Service Architecture**: Clean service-based design with dependency injection
+- **📡 RFID Hardware Integration**: ESP32 RFID reader support with real-time communication
+- **🔧 Core Services**: ConfigurationService, DatabaseService, LoggingService, ErrorHandler
+- **🛡️ Security Features**: Comprehensive input validation and session management
+- **⚡ Performance Features**: Connection pooling, query optimization, and structured logging
+- **📱 Mobile Support**: Responsive design with mobile-friendly interface
+
+## 🚀 Architecture
+
+The system uses a service-based architecture with clean separation of concerns and modern PHP patterns.
+
+### Entry Point & Bootstrap
+
+**Single Entry Point**: `bootstrap.php` (modern) with `index.php` as simple redirect
+
+```php
+// Modern entry flow
+bootstrap.php → Application::class → ConfigurationService → DatabaseService → Router
+```
+
+### Service Layer Architecture
+
+```
+src/Services/
+├── 📋 ConfigurationService     # Environment-based configuration management
+├── �️ DatabaseService         # Connection pooling, transactions, query optimization
+├── � LoggingService          # Structured logging with multiple levels
+├── � ErrorHandler            # Environment-aware error handling
+├── 🔐 AuthenticationService   # User authentication and session management
+└── 🛡️ SecurityService         # Security operations and validation
+```
+
+### Modern Directory Structure
+
+```
+rfid-checkin/
+├── 🚀 bootstrap.php           # Modern application entry point
+├── 📄 index.php               # Redirect to bootstrap.php
+├── �️ src/                    # Modern Service Architecture
+│   ├── Application.php        # Application bootstrap and dependency injection
+│   ├── Services/              # Business logic and data services
+│   ├── Controllers/           # Request handling (API & Frontend)
+│   ├── Models/                # Data models and entities
+│   ├── Middleware/            # Request middleware pipeline
+│   ├── Routing/               # URL routing system
+│   └── Repositories/          # Data access layer
+├── ⚙️ config/                 # Configuration files
+│   └── routes.php             # Route definitions
+├── 🎨 assets/                 # Frontend resources (CSS, JS)
+├── 🔌 hardware/               # ESP32 integration code
+├── �️ database/               # Database setup and migrations
+├── 🧪 tests/                  # Testing framework
+└── 📚 docs/                   # Documentation
+```
+
+### Removed Legacy Files
+
+The following legacy files have been completely removed as part of the modernization:
+
+- ❌ `core/config.php` → ✅ `ConfigurationService`
+- ❌ `core/auth.php` → ✅ `AuthenticationService`
+- ❌ `core/database.php` → ✅ `DatabaseService`
+- ❌ `core/SecurityManager.php` → ✅ `SecurityService`
+- ❌ `core/ErrorHandler.php` → ✅ `Services\ErrorHandler`
+
+### Design Patterns
+
+- **🏗️ Service Container**: Dependency injection and service management
+- **🔄 Singleton Pattern**: Shared service instances with lazy loading
+- **📊 Repository Pattern**: Data access abstraction
+- **🎭 MVC Architecture**: Separation of concerns
+- **🛡️ Middleware Pattern**: Request/response processing
 
 ## ✨ Features
 
 ### Core Functionality
-- ✅ **RFID Check-in/Check-out**: Hardware-based attendance tracking
+- ✅ **RFID Check-in/Check-out**: Hardware-based attendance tracking with ESP32 integration
 - ✅ **Event Management**: Create, schedule, and manage events with recurring support
-- ✅ **User Management**: Role-based access control (Admin, User, Moderator)
+- ✅ **User Management**: Role-based access control (Admin, Moderator, User)
 - ✅ **Real-time Dashboard**: Live attendance monitoring and analytics
 - ✅ **Mobile Support**: Responsive design with mobile check-in capabilities
-- ✅ **Reporting System**: Comprehensive attendance reports and analytics
+- ✅ **Reporting System**: Attendance reports and analytics
+
+### Service Features
+- ⚙️ **Environment Configuration**: Centralized config with environment variables
+- 🗄️ **Connection Pooling**: Efficient database connection management
+- 📝 **Structured Logging**: Multi-level logging with context and performance tracking
+- 🚨 **Smart Error Handling**: Development vs production error display modes
+- � **Session Management**: Secure authentication with CSRF protection
+- ⚡ **Performance Optimization**: Query optimization and caching strategies
 
 ### Advanced Features
 - 🔄 **Recurring Events**: Support for daily, weekly, monthly recurring events
 - 🏢 **User Groups**: Department and team-based organization
-- 📱 **Mobile Check-in**: Alternative check-in methods for mobile devices
-- 🔔 **Notifications**: Real-time system notifications and alerts
-- 📊 **Performance Analytics**: System performance monitoring and optimization
-- 🛡️ **Security Monitoring**: Comprehensive security logging and protection
+- 📱 **Alternative Check-in**: Mobile and manual check-in methods
+- 🔔 **Notifications**: System notifications and alerts
+- 📊 **Performance Monitoring**: System performance tracking
+- 🛡️ **Security Monitoring**: Security logging and protection
 
 ### Hardware Integration
-- 🏷️ **ESP32 RFID Readers**: Native support for RC522 RFID modules
-- 📡 **Real-time Communication**: Instant check-in processing
+- 🏷️ **ESP32 RFID Readers**: Support for RC522 RFID modules
+- 📡 **Real-time Communication**: Instant check-in processing with device status monitoring
 - 🔧 **Device Management**: Monitor and configure RFID devices remotely
 - 🚨 **Registration Mode**: Dynamic RFID tag registration system
 
-## 🏗️ System Architecture
-
-The system uses a hybrid architecture combining modern and legacy approaches:
-
-```
-RFID-Checking/
-├── 🆕 src/                     # Modern MVC Architecture
-│   ├── Application.php         # Application Bootstrap
-│   ├── Controllers/            # Request Controllers
-│   ├── Models/                 # Data Models
-│   ├── Services/               # Business Logic
-│   ├── Repositories/           # Data Access Layer
-│   ├── Middleware/             # Request Middleware
-│   ├── Routing/                # URL Routing
-│   └── Views/                  # Template Views
-├── 🔧 core/                    # Core Application Logic
-│   ├── config.php              # Configuration Management
-│   ├── auth.php                # Authentication System
-│   ├── database.php            # Database Layer
-│   ├── PerformanceManager.php  # Performance Optimization
-│   ├── SecurityManager.php     # Security Features
-│   └── repositories/           # Data Repositories
-├── 📚 legacy/                  # Legacy Code Structure
-│   ├── admin/                  # Administrative Interface
-│   ├── api/                    # API Endpoints
-│   ├── auth/                   # Authentication Pages
-│   └── frontend/               # User Interface
-├── 🎨 assets/                  # Frontend Resources
-│   ├── css/                    # Stylesheets
-│   └── js/                     # JavaScript Files
-├── 🔌 hardware/                # ESP32 Integration
-│   ├── ESP32-RFID-Reader.ino   # Arduino Firmware
-│   └── config-example.h        # Hardware Configuration
-├── 🗄️ database/                # Database Management
-│   ├── setup-database.php      # Database Setup Script
-│   └── diagnostic tools        # Maintenance Scripts
-└── 🧪 tests/                   # Testing Framework
-    ├── TestFramework.php       # Test Suite
-    └── test suites             # Unit/Integration Tests
-```
-
-### Architecture Patterns
-
-- **Repository Pattern**: Abstracted data access layer
-- **Service Layer**: Business logic separation
-- **MVC Architecture**: Clean separation of concerns
-- **Middleware Pattern**: Request/response processing
-- **Singleton Pattern**: Shared resource management
-
-## 📋 Requirements
+## �📋 System Requirements
 
 ### System Requirements
-- **PHP**: 8.0 or higher
+- **PHP**: 8.1 or higher (with strict typing support)
 - **Web Server**: Apache 2.4+ or Nginx 1.18+
 - **Database**: MySQL 8.0+ or MariaDB 10.5+
-- **Memory**: 512MB RAM minimum (2GB recommended)
+- **Memory**: 512MB RAM minimum (1GB recommended)
 - **Storage**: 1GB available space
 
 ### PHP Extensions
@@ -140,35 +178,68 @@ RFID-Checking/
 - **Git** (for version control)
 - **Arduino IDE** (for hardware programming)
 
-## 🚀 Installation
+## 🚀 Quick Start
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-org/rfid-checking.git
-cd rfid-checking
+git clone https://github.com/Krialder/rfid-checkin.git
+cd rfid-checkin
 ```
 
-### 2. Install Dependencies
+### 2. Environment Setup
+
+Create environment configuration:
 
 ```bash
-# Install PHP dependencies (if using Composer)
-composer install
+# Copy environment template (if available)
+cp .env.example .env
 
-# Set proper permissions
-chmod -R 755 .
-chmod -R 777 cache/ logs/ uploads/
+# Or create .env file with these variables:
+cat > .env << EOF
+# Database Configuration
+DB_HOST=localhost
+DB_NAME=rfid_checkin_system
+DB_USER=your_db_user
+DB_PASS=your_secure_password
+DB_CHARSET=utf8mb4
+
+# Application Configuration
+APP_ENV=production
+APP_DEBUG=false
+APP_NAME="RFID Check-in System"
+BASE_URL=http://your-domain.com/rfid-checkin
+
+# Security Configuration
+SESSION_LIFETIME=3600
+PASSWORD_MIN_LENGTH=8
+CSRF_PROTECTION=true
+
+# Logging Configuration
+LOG_LEVEL=INFO
+LOG_PATH=./logs
+EOF
 ```
 
-### 3. Configure Web Server
+### 3. Set Permissions
+
+```bash
+# Set proper permissions
+chmod -R 755 .
+mkdir -p logs uploads cache
+chmod -R 777 logs/ uploads/ cache/
+```
+
+### 4. Configure Web Server
 
 #### Apache Configuration
 ```apache
 <VirtualHost *:80>
     ServerName rfid-checkin.local
-    DocumentRoot /path/to/rfid-checking
+    DocumentRoot /path/to/rfid-checkin
+    DirectoryIndex bootstrap.php index.php
     
-    <Directory /path/to/rfid-checking>
+    <Directory /path/to/rfid-checkin>
         AllowOverride All
         Require all granted
     </Directory>
@@ -183,23 +254,23 @@ chmod -R 777 cache/ logs/ uploads/
 server {
     listen 80;
     server_name rfid-checkin.local;
-    root /path/to/rfid-checking;
-    index index.php index.html;
+    root /path/to/rfid-checkin;
+    index bootstrap.php index.php;
     
     location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        try_files $uri $uri/ /bootstrap.php?$query_string;
     }
     
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
-        fastcgi_index index.php;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_index bootstrap.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
 }
 ```
 
-### 4. Database Setup
+### 5. Database Setup
 
 ```bash
 # Navigate to database directory
@@ -218,53 +289,70 @@ The setup script will:
 - Configure system settings
 - Create the default admin account
 
-### 5. Configuration
-
-```bash
-# Copy configuration template
-cp core/config.template.php core/config.php
-
-# Edit configuration with your settings
-nano core/config.php
-```
-
 ## ⚙️ Configuration
 
-### Database Configuration
+The system uses environment variables for configuration through the `ConfigurationService`. All settings are centralized and loaded from environment variables.
 
-Edit `core/config.php`:
+### Environment Variables
 
-```php
-// Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'rfid_checkin_system');
-define('DB_USER', 'your_db_user');
-define('DB_PASS', 'your_secure_password');
-define('DB_CHARSET', 'utf8mb4');
+#### Database Configuration
+```bash
+DB_HOST=localhost                    # Database host
+DB_NAME=rfid_checkin_system         # Database name
+DB_USER=your_db_user                # Database username
+DB_PASS=your_secure_password        # Database password
+DB_CHARSET=utf8mb4                  # Database charset
 ```
 
-### Application Settings
-
-```php
-// Application Configuration
-define('APP_NAME', 'Your Organization Check-in System');
-define('BASE_URL', 'http://your-domain.com/rfid-checkin');
-define('DEBUG_MODE', false); // Set to false in production
-
-// Security Configuration
-define('SESSION_LIFETIME', 3600); // 1 hour
-define('PASSWORD_MIN_LENGTH', 8);
+#### Application Settings
+```bash
+APP_ENV=production                   # Environment: development, production
+APP_DEBUG=false                     # Debug mode (true for development)
+APP_NAME="RFID Check-in System"     # Application name
+BASE_URL=http://your-domain.com     # Base URL for the application
 ```
 
-### System Settings
+#### Security Settings
+```bash
+SESSION_LIFETIME=3600               # Session timeout in seconds
+PASSWORD_MIN_LENGTH=8               # Minimum password length
+CSRF_PROTECTION=true               # Enable CSRF protection
+MAX_LOGIN_ATTEMPTS=5               # Maximum login attempts before lockout
+LOCKOUT_DURATION=900              # Lockout duration in seconds
+```
 
-Access the admin panel to configure:
+#### Logging Configuration
+```bash
+LOG_LEVEL=INFO                     # Log level: DEBUG, INFO, WARNING, ERROR
+LOG_PATH=./logs                    # Log file directory
+LOG_ENABLED=true                   # Enable/disable logging
+```
 
-- **Company Information**: Name, logo, contact details
-- **RFID Settings**: Device configuration, registration mode
-- **Security Settings**: Login attempts, session timeout
-- **Event Settings**: Default durations, recurring patterns
-- **Notification Settings**: Email alerts, system notifications
+### Migration from Legacy Configuration
+
+If you're migrating from the old `core/config.php` approach:
+
+1. **Remove legacy files**: The old `core/config.php` is no longer used
+2. **Set environment variables**: Use the `.env` file or server environment variables
+3. **Update references**: All configuration now goes through `ConfigurationService`
+
+### Configuration Service Usage
+
+```php
+use RfidCheckin\Services\ConfigurationService;
+
+$config = ConfigurationService::getInstance();
+
+// Get configuration values
+$dbHost = $config->get('database.host');
+$appName = $config->get('app.name');
+$debugMode = $config->get('app.debug_mode', false);
+
+// Check configuration
+if ($config->has('database.host')) {
+    // Database configuration exists
+}
+```
 
 ## 🔌 Hardware Setup
 
@@ -352,14 +440,6 @@ After installation, use these credentials to access the admin panel:
 - **Moderator**: Event management, reporting, limited user access
 - **User**: Basic check-in/out, personal dashboard, profile management
 
-### Mobile Access
-
-The system is fully responsive and supports:
-- Mobile web browsers
-- Progressive web app features
-- QR code check-in (alternative to RFID)
-- Touch-optimized interface
-
 ## 📡 API Documentation
 
 ### Core Endpoints
@@ -385,43 +465,119 @@ Response:
     "name": "Daily Standup",
     "id": 1
   },
-  "timestamp": "2025-01-15T09:00:00Z"
+  "timestamp": "2025-09-18T09:00:00Z"
 }
 ```
 
-#### Dashboard Data
+#### System Status
 ```http
-GET /api/dashboard.php
-Authorization: Bearer {session_token}
+GET /api/status
 ```
 
-#### Event Details
-```http
-GET /api/event-details.php?event_id=1
-Authorization: Bearer {session_token}
+Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-09-18T09:00:00Z",
+  "services": {
+    "database": "connected",
+    "logging": "active",
+    "configuration": "loaded"
+  }
+}
 ```
 
 ### Authentication
 
-All API endpoints (except RFID check-in) require authentication:
+API endpoints require proper authentication through the AuthenticationService.
 
-```http
-POST /auth/login-process.php
-Content-Type: application/x-www-form-urlencoded
+## 🔄 Migration Guide
 
-username=admin&password=admin123
+### From Legacy Architecture (v3.0 to v3.1)
+
+If you're upgrading from the previous version, here are the key changes:
+
+#### Entry Point Changes
+- **OLD**: Mixed entry points (`index.php` + `bootstrap.php`)
+- **NEW**: Single entry point (`bootstrap.php`) with `index.php` redirecting
+
+#### Configuration Changes
+- **OLD**: `core/config.php` with define() constants
+- **NEW**: Environment variables through `ConfigurationService`
+
+```bash
+# Migration steps:
+1. Backup your current configuration from core/config.php
+2. Create .env file with equivalent environment variables
+3. Remove or ignore core/config.php (no longer used)
+4. Update any custom code to use ConfigurationService
 ```
 
-### Error Handling
+#### Service Architecture
+- **OLD**: Direct includes and global functions
+- **NEW**: Namespaced services with dependency injection
 
-API responses include standardized error codes:
+#### Removed Files
+The following files are no longer used and can be safely removed:
+- `core/config.php` (replaced by ConfigurationService)
+- `core/auth.php` (replaced by AuthenticationService)
+- `core/database.php` (replaced by DatabaseService)
+- `core/SecurityManager.php` (replaced by SecurityService)
+- `core/ErrorHandler.php` (replaced by Services\ErrorHandler)
 
-```json
+#### Code Updates
+If you have custom code, update service calls:
+
+```php
+// OLD
+require_once 'core/config.php';
+require_once 'core/database.php';
+$db = getDB();
+
+// NEW
+use RfidCheckin\Services\DatabaseService;
+$db = DatabaseService::getInstance();
+```
+
+## 🛠️ Development
+
+### Running in Development Mode
+
+```bash
+# Set debug mode in .env
+APP_ENV=development
+APP_DEBUG=true
+LOG_LEVEL=DEBUG
+
+# Check system status
+php -r "require 'bootstrap.php'; echo 'Services loaded successfully';"
+```
+
+### Service Development
+
+```php
+// Example: Creating a new service
+namespace RfidCheckin\Services;
+
+class YourNewService
 {
-  "success": false,
-  "error": "User not found",
-  "code": "USER_NOT_FOUND",
-  "timestamp": "2025-01-15T09:00:00Z"
+    private static ?YourNewService $instance = null;
+    private ConfigurationService $config;
+    private LoggingService $logger;
+    
+    private function __construct()
+    {
+        $this->config = ConfigurationService::getInstance();
+        $this->logger = LoggingService::getInstance();
+    }
+    
+    public static function getInstance(): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 }
 ```
 
@@ -462,147 +618,124 @@ sim 1234ABCD   # Simulate RFID scan
 restart        # Restart device
 ```
 
-## ⚡ Performance
+## ⚡ Performance & Monitoring
 
-### Optimization Features
-
-- **Query Optimization**: Automated query analysis and recommendations
-- **Caching System**: Multi-layer caching with Redis/APCu support
-- **Asset Optimization**: CSS/JS minification and compression
-- **Database Indexing**: Optimized indexes for common queries
-- **Connection Pooling**: Efficient database connection management
+### Built-in Optimization
+- **Connection Pooling**: Efficient database connection management through DatabaseService
+- **Query Optimization**: Performance monitoring and optimization suggestions
+- **Structured Logging**: Performance tracking with LoggingService
+- **Error Handling**: Environment-aware error display (dev vs production)
+- **Service Caching**: Singleton patterns with lazy loading
 
 ### Performance Metrics
-
-- **Page Load Time**: < 200ms (cached)
-- **API Response Time**: < 100ms average
-- **RFID Processing**: < 500ms end-to-end
-- **Database Queries**: < 50ms average
-- **Memory Usage**: < 64MB per request
+- **Service Response**: < 100ms for most service calls
+- **Database Queries**: Optimized with connection pooling
+- **Memory Usage**: Efficient with singleton pattern
+- **Error Handling**: Fast development debugging, secure production display
 
 ### Monitoring
+```php
+// Check service performance
+$config = ConfigurationService::getInstance();
+$db = DatabaseService::getInstance();
+$logger = LoggingService::getInstance();
 
-Access performance dashboard at:
+// Services provide built-in monitoring
+$queryCount = $db->getQueryCount();
+$logger->info('Performance check', ['queries' => $queryCount]);
 ```
-http://your-domain.com/admin/performance.php
-```
-
-Features:
-- Real-time performance metrics
-- Query analysis and optimization suggestions
-- System resource monitoring
-- Error tracking and alerts
 
 ## 🛡️ Security
 
 ### Security Features
-
-- **Authentication**: Secure session management with CSRF protection
-- **Password Security**: bcrypt hashing with salt
+- **Environment Configuration**: Sensitive data in environment variables
+- **Session Management**: Secure session handling through AuthenticationService
 - **Input Validation**: Comprehensive input sanitization
-- **SQL Injection Protection**: Prepared statements throughout
-- **Rate Limiting**: Login attempt limiting and IP blocking
-- **Security Headers**: XSS protection, content security policy
+- **Error Handling**: Secure error display in production mode
+- **CSRF Protection**: Built-in CSRF token validation
+- **SQL Injection Protection**: Prepared statements throughout DatabaseService
 
 ### Security Configuration
-
-```php
-// Security Settings in config.php
-define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOCKOUT_DURATION', 900); // 15 minutes
-define('SESSION_SECURE', true);   // HTTPS only
-define('CSRF_PROTECTION', true);
+```bash
+# .env security settings
+CSRF_PROTECTION=true
+SESSION_LIFETIME=3600
+MAX_LOGIN_ATTEMPTS=5
+LOCKOUT_DURATION=900
+APP_DEBUG=false  # Never true in production
 ```
 
-### Security Monitoring
+## 🔧 Troubleshooting
 
-- **Access Logging**: All user actions logged
-- **Security Events**: Failed logins, suspicious activity
-- **Audit Trail**: Complete change history
-- **Alert System**: Real-time security notifications
+### Common Issues
 
-### Best Practices
+#### Service Loading Issues
+```bash
+# Check if services can be loaded
+php -r "require 'bootstrap.php'; echo 'OK';"
 
-1. **Regular Updates**: Keep system and dependencies updated
-2. **Strong Passwords**: Enforce password complexity requirements
-3. **HTTPS**: Always use SSL/TLS in production
-4. **Backup Strategy**: Regular database and file backups
-5. **Access Control**: Implement principle of least privilege
+# Check specific service
+php -r "
+require 'bootstrap.php';
+\$config = \RfidCheckin\Services\ConfigurationService::getInstance();
+echo 'Config loaded: ' . (\$config ? 'OK' : 'FAIL');
+"
+```
+
+#### Database Connection Issues
+```bash
+# Test database connection
+php -r "
+require 'bootstrap.php';
+\$db = \RfidCheckin\Services\DatabaseService::getInstance();
+echo 'DB connection: ' . (\$db->testConnection() ? 'OK' : 'FAIL');
+"
+```
+
+#### Environment Variables
+```bash
+# Check if environment variables are loaded
+php -r "
+echo 'DB_HOST: ' . (\$_ENV['DB_HOST'] ?? 'Not set') . PHP_EOL;
+echo 'APP_ENV: ' . (\$_ENV['APP_ENV'] ?? 'Not set') . PHP_EOL;
+"
+```
+
+### Log Files
+System logs are managed by LoggingService:
+- **Application logs**: `logs/application.log`
+- **Error logs**: `logs/error.log`
+- **Debug logs**: Available when `APP_DEBUG=true`
 
 ## 🤝 Contributing
 
 ### Development Setup
 
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Install development dependencies: `composer install --dev`
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Set up development environment with `APP_DEBUG=true`
 4. Run tests: `php tests/run-tests.php`
-5. Make changes and commit: `git commit -m 'Add amazing feature'`
-6. Push to branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+5. Make changes following the service architecture patterns
+6. Commit changes: `git commit -m 'Add new feature'`
+7. Push to branch: `git push origin feature/new-feature`
+8. Open a Pull Request
 
 ### Code Standards
 
 - Follow PSR-12 coding standards
-- Include comprehensive tests for new features
-- Update documentation for API changes
-- Use meaningful commit messages
+- Use strict typing: `declare(strict_types=1);`
+- Create services following the singleton pattern
+- Use environment variables for configuration
+- Include proper error handling and logging
 
-### Testing Requirements
+### Service Development Guidelines
 
-All contributions must include:
-- Unit tests for new functionality
-- Integration tests for API changes
-- Security tests for authentication/authorization changes
-- Performance tests for database queries
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### Database Connection Failed
-```bash
-# Check database server status
-systemctl status mysql
-
-# Verify credentials in config.php
-# Test connection manually
-mysql -u username -p database_name
-```
-
-#### RFID Hardware Not Responding
-```bash
-# Check ESP32 serial monitor
-# Verify WiFi connection
-# Test API endpoints manually
-curl -X POST http://your-domain.com/api/rfid-checkin.php \
-     -d "rfid=TEST1234&device_id=READER_001"
-```
-
-#### Performance Issues
-```bash
-# Enable query logging
-# Check server resources
-# Run performance tests
-php tests/run-tests.php --suite=performance
-```
-
-### Log Files
-
-System logs are located in:
-- Application logs: `logs/application.log`
-- Error logs: `logs/error.log`
-- Access logs: `logs/access.log`
-- Security logs: `logs/security.log`
-
-### Support
-
-For technical support:
-1. Check the troubleshooting guide
-2. Review system logs
-3. Run diagnostic tests
-4. Check GitHub issues
-5. Contact system administrator
+When creating new services:
+1. Extend the service pattern used by existing services
+2. Use dependency injection and lazy loading
+3. Implement proper logging with LoggingService
+4. Follow the singleton pattern for shared resources
+5. Use ConfigurationService for all configuration needs
 
 ## 📄 License
 
@@ -610,16 +743,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+- **PHP Community**: For modern PHP patterns and best practices
 - **RC522 Library**: MFRC522 Arduino library contributors
 - **Bootstrap**: Frontend framework
-- **Chart.js**: Data visualization library
-- **Font Awesome**: Icon library
-- **PHP Community**: Ongoing support and development
+- **Open Source Libraries**: Various libraries that make this project possible
 
 ---
 
-**Project Status**: Production Ready  
-**Last Updated**: January 2025  
-**Version**: 3.0.0
+**Project Status**: ✅ Modernized Architecture Complete  
+**Last Updated**: September 2025  
+**Version**: 3.1.0  
+**Architecture**: Service-Based with Modern PHP Patterns
 
-For more detailed documentation, visit the individual module README files in each directory.
+For detailed technical documentation, see:
+- [`src/README.md`](src/README.md) - Service architecture details
+- [`database/README.md`](database/README.md) - Database setup and configuration
+- [`hardware/README.md`](hardware/README.md) - ESP32 hardware integration
+- [`docs/README.md`](docs/README.md) - Additional documentation

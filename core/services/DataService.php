@@ -501,34 +501,6 @@ class DataService {
     }
     
     /**
-     * Create user with enhanced security
-     * 
-     * @param array $userData User data
-     * @return int|false User ID on success, false on failure
-     */
-    public function createUser(array $userData) {
-        try {
-            // Hash password using SecurityManager for enhanced security
-            if (isset($userData['password'])) {
-                $securityManager = SecurityManager::getInstance();
-                $userData['password'] = $securityManager->hashPassword($userData['password']);
-            }
-            
-            $userId = $this->userRepo->createUser($userData);
-            
-            if ($userId) {
-                return $userId;
-            } else {
-                return false;
-            }
-            
-        } catch (Exception $e) {
-            $this->errorHandler->logError('User creation failed', $e);
-            return false;
-        }
-    }
-    
-    /**
      * Get user by email
      * 
      * @param string $email User email

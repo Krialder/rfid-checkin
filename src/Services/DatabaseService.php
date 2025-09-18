@@ -10,24 +10,22 @@ use PDOStatement;
 use Exception;
 
 /**
- * Centralized Database Service
+ * Database Service
  * 
- * Provides secure, efficient database connectivity with connection pooling,
- * query optimization, transaction management, and comprehensive error handling.
- * Replaces all scattered database connection patterns throughout the application.
+ * Provides secure database connectivity with connection management,
+ * query optimization, transaction support, and error handling.
+ * Manages all database operations for the application.
  * 
  * Features:
  * - Singleton pattern for connection reuse
- * - Automatic connection health monitoring
+ * - Connection health monitoring
  * - Prepared statement management
  * - Transaction support with automatic rollback
  * - Query performance monitoring
- * - Connection pooling simulation
- * - Comprehensive error logging
+ * - Error logging
  * 
  * @package RfidCheckin\Services
  * @version 1.0.0
- * @author Senior Development Team
  */
 class DatabaseService
 {
@@ -36,14 +34,14 @@ class DatabaseService
     private array $connectionConfig;
     private bool $inTransaction = false;
     private array $queryStats = [];
-    private LoggingService $logger;
+    private ?LoggingService $logger = null;
+    private ?ConfigurationService $config = null;
 
     /**
      * Private constructor for singleton pattern
      */
     private function __construct()
     {
-        $this->logger = LoggingService::getInstance();
         $this->loadConfiguration();
     }
 
@@ -57,27 +55,97 @@ class DatabaseService
         }
         return self::$instance;
     }
+    
+    /**
+     * Get logger instance (lazy loading to avoid circular dependency)
+     */
+    private function getLogger(): ?LoggingService
+    {
+        if ($this->logger === null) {
+            try {
+                // Only get logger if it can be initialized without causing circular dependency
+                $this->logger = LoggingService::getInstance();
+            } catch (Exception $e) {
+                // Logger not available, will use error_log instead
+                return null;
+            }
+        }
+        return $this->logger;
+    }
+    
+    /**
+     * Log message (safe method that handles missing logger)
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        $logger = $this->getLogger();
+        if ($logger) {
+            $logger->log($level, $message, $context);
+        } else {
+            // Fallback to basic error logging
+            $contextStr = empty($context) ? '' : ' | ' . json_encode($context);
+            error_log("[DatabaseService] [$level] $message$contextStr");
+        }
+    }
+    
+    /**
+     * Get configuration instance (lazy loading)
+     */
+    private function getConfig(): ?ConfigurationService
+    {
+        if ($this->config === null) {
+            try {
+                $this->config = ConfigurationService::getInstance();
+            } catch (Exception $e) {
+                // Configuration not available yet
+                return null;
+            }
+        }
+        return $this->config;
+    }
 
     /**
-     * Load database configuration from environment
+     * Load database configuration from environment and ConfigurationService
      */
     private function loadConfiguration(): void
     {
-        $this->connectionConfig = [
-            'host' => $_ENV['DB_HOST'] ?? 'localhost',
-            'dbname' => $_ENV['DB_NAME'] ?? 'rfid_checkin_system',
-            'username' => $_ENV['DB_USER'] ?? 'root',
-            'password' => $_ENV['DB_PASS'] ?? '',
-            'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4',
-            'options' => [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_PERSISTENT => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
-                PDO::ATTR_TIMEOUT => 10,
-            ]
-        ];
+        $config = $this->getConfig();
+        
+        if ($config) {
+            // Use ConfigurationService if available
+            $this->connectionConfig = [
+                'host' => $config->get('database.host'),
+                'dbname' => $config->get('database.name'),
+                'username' => $config->get('database.username'),
+                'password' => $config->get('database.password'),
+                'charset' => $config->get('database.charset'),
+                'options' => [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_PERSISTENT => $config->get('database.options.persistent', false),
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . $config->get('database.charset'),
+                    PDO::ATTR_TIMEOUT => $config->get('database.options.timeout', 10),
+                ]
+            ];
+        } else {
+            // Use environment variables directly (modern approach)
+            $this->connectionConfig = [
+                'host' => $_ENV['DB_HOST'] ?? 'localhost',
+                'dbname' => $_ENV['DB_NAME'] ?? 'rfid_checkin_system',
+                'username' => $_ENV['DB_USER'] ?? 'root',
+                'password' => $_ENV['DB_PASS'] ?? '',
+                'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4',
+                'options' => [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_PERSISTENT => false,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+                    PDO::ATTR_TIMEOUT => 10,
+                ]
+            ];
+        }
     }
 
     /**
@@ -118,13 +186,13 @@ class DatabaseService
             // Set timezone to UTC for consistent timestamps
             $this->connection->exec("SET time_zone = '+00:00'");
 
-            $this->logger->info('Database connection established', [
+            $this->log('info', 'Database connection established', [
                 'host' => $this->connectionConfig['host'],
                 'database' => $this->connectionConfig['dbname']
             ]);
 
         } catch (PDOException $e) {
-            $this->logger->error('Database connection failed', [
+            $this->log('error', 'Database connection failed', [
                 'error' => $e->getMessage(),
                 'host' => $this->connectionConfig['host'],
                 'database' => $this->connectionConfig['dbname']
@@ -143,7 +211,7 @@ class DatabaseService
             $this->connection->query('SELECT 1');
             return true;
         } catch (PDOException $e) {
-            $this->logger->warning('Database connection lost', ['error' => $e->getMessage()]);
+            $this->log('warning', 'Database connection lost', ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -170,7 +238,7 @@ class DatabaseService
             return $result;
             
         } catch (PDOException $e) {
-            $this->logger->error('SELECT query failed', [
+            $this->log('error', 'SELECT query failed', [
                 'query' => $query,
                 'params' => $params,
                 'error' => $e->getMessage()
@@ -215,7 +283,7 @@ class DatabaseService
             return $lastId;
             
         } catch (PDOException $e) {
-            $this->logger->error('INSERT query failed', [
+            $this->log('error', 'INSERT query failed', [
                 'query' => $query,
                 'params' => $params,
                 'error' => $e->getMessage()
@@ -273,7 +341,7 @@ class DatabaseService
             return $affectedRows;
             
         } catch (PDOException $e) {
-            $this->logger->error("$type query failed", [
+            $this->log('error', "$type query failed", [
                 'query' => $query,
                 'params' => $params,
                 'error' => $e->getMessage()
@@ -296,7 +364,7 @@ class DatabaseService
         try {
             $this->getConnection()->beginTransaction();
             $this->inTransaction = true;
-            $this->logger->debug('Database transaction started');
+            $this->log('debug', 'Database transaction started');
         } catch (PDOException $e) {
             throw new Exception('Failed to start transaction: ' . $e->getMessage());
         }
@@ -316,7 +384,7 @@ class DatabaseService
         try {
             $this->getConnection()->commit();
             $this->inTransaction = false;
-            $this->logger->debug('Database transaction committed');
+            $this->log('debug', 'Database transaction committed');
         } catch (PDOException $e) {
             throw new Exception('Failed to commit transaction: ' . $e->getMessage());
         }
@@ -336,7 +404,7 @@ class DatabaseService
         try {
             $this->getConnection()->rollback();
             $this->inTransaction = false;
-            $this->logger->debug('Database transaction rolled back');
+            $this->log('debug', 'Database transaction rolled back');
         } catch (PDOException $e) {
             throw new Exception('Failed to rollback transaction: ' . $e->getMessage());
         }
@@ -375,7 +443,7 @@ class DatabaseService
         try {
             return $this->getConnection()->prepare($query);
         } catch (PDOException $e) {
-            $this->logger->error('Failed to prepare statement', [
+            $this->log('error', 'Failed to prepare statement', [
                 'query' => $query,
                 'error' => $e->getMessage()
             ]);
@@ -442,11 +510,49 @@ class DatabaseService
 
         // Log slow queries (> 1 second)
         if ($duration > 1.0) {
-            $this->logger->warning('Slow query detected', [
+            $this->log('warning', 'Slow query detected', [
                 'query' => $query,
                 'params' => $params,
                 'duration' => $duration
             ]);
+        }
+    }
+
+    /**
+     * Test database connection
+     * 
+     * @return bool True if connection successful
+     */
+    public function testConnection(): bool
+    {
+        try {
+            $connection = $this->getConnection();
+            $connection->query('SELECT 1');
+            return true;
+        } catch (Exception $e) {
+            $this->log('error', 'Database connection test failed', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Get query count for performance monitoring
+     * 
+     * @return int Number of executed queries
+     */
+    public function getQueryCount(): int
+    {
+        return count($this->queryStats);
+    }
+
+    /**
+     * Close database connection
+     */
+    public function closeConnection(): void
+    {
+        if ($this->connection !== null) {
+            $this->connection = null;
+            $this->log('debug', 'Database connection closed');
         }
     }
 
@@ -464,13 +570,13 @@ class DatabaseService
             foreach ($tables as $table) {
                 $tableName = $table[$tableColumn];
                 $this->getConnection()->exec("OPTIMIZE TABLE `$tableName`");
-                $this->logger->debug("Optimized table: $tableName");
+                $this->log('debug', "Optimized table: $tableName");
             }
             
             return true;
             
         } catch (Exception $e) {
-            $this->logger->error('Table optimization failed', ['error' => $e->getMessage()]);
+            $this->log('error', 'Table optimization failed', ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -479,7 +585,7 @@ class DatabaseService
      * Prevent cloning of singleton
      */
     private function __clone() {}
-
+    
     /**
      * Prevent unserialization of singleton
      */

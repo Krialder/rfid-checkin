@@ -585,6 +585,9 @@ class RfidApiController extends BaseApiController
             $this->respondError('Failed to deactivate device', 400);
         }
     }
+    
+    /**
+     * Handle polling for RFID tag reads from devices
      * 
      * POST /api/rfid/poll
      * Body: {

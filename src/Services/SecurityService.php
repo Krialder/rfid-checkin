@@ -9,9 +9,8 @@ use Exception;
 /**
  * Security Service
  * 
- * Provides comprehensive security features including input validation,
+ * Provides security features including input validation,
  * CSRF protection, XSS prevention, and security monitoring.
- * Centralizes all security-related functionality.
  * 
  * Features:
  * - Input validation and sanitization
@@ -19,11 +18,10 @@ use Exception;
  * - XSS protection with output encoding
  * - Rate limiting for API endpoints
  * - Security header management
- * - Intrusion detection logging
+ * - Security logging
  * 
  * @package RfidCheckin\Services
  * @version 1.0.0
- * @author Senior Development Team
  */
 class SecurityService
 {
@@ -74,7 +72,7 @@ class SecurityService
      * @param string $action Action name for token scope
      * @return string CSRF token
      */
-    public function generateCSRFToken(string $action = 'general'): string
+    public function generateCsrfToken(string $action = 'general'): string
     {
         $token = bin2hex(random_bytes(32));
         
@@ -98,7 +96,7 @@ class SecurityService
      * @param string $action Action name for token scope
      * @return bool True if valid
      */
-    public function validateCSRFToken(string $token, string $action = 'general'): bool
+    public function validateCsrfToken(string $token, string $action = 'general'): bool
     {
         if (!isset($_SESSION['csrf_tokens'][$action])) {
             $this->logger->security('csrf_validation_failed', 'No CSRF token found for action', [
@@ -469,6 +467,147 @@ class SecurityService
         $this->rateLimits[$key][] = $now;
         
         return true;
+    }
+
+    /**
+     * Check if rate limited
+     */
+    public function isRateLimited(string $identifier, string $action = 'general'): bool
+    {
+        return !$this->checkRateLimit($identifier, $action);
+    }
+
+    /**
+     * Record failed attempt
+     */
+    public function recordFailedAttempt(string $identifier, string $context = ''): void
+    {
+        $key = 'failed_attempts:' . $identifier;
+        
+        if (!isset($_SESSION[$key])) {
+            $_SESSION[$key] = [];
+        }
+        
+        $_SESSION[$key][] = [
+            'timestamp' => time(),
+            'context' => $context
+        ];
+        
+        // Keep only recent attempts (last hour)
+        $_SESSION[$key] = array_filter($_SESSION[$key], function($attempt) {
+            return (time() - $attempt['timestamp']) < 3600;
+        });
+        
+        $this->logger->security('failed_attempt_recorded', 'Failed attempt recorded', [
+            'identifier' => $identifier,
+            'context' => $context,
+            'attempt_count' => count($_SESSION[$key])
+        ]);
+    }
+
+    /**
+     * Get failed attempts count
+     */
+    public function getFailedAttempts(string $identifier): int
+    {
+        $key = 'failed_attempts:' . $identifier;
+        return count($_SESSION[$key] ?? []);
+    }
+
+    /**
+     * Clear failed attempts
+     */
+    public function clearFailedAttempts(string $identifier): void
+    {
+        $key = 'failed_attempts:' . $identifier;
+        unset($_SESSION[$key]);
+    }
+
+    /**
+     * Generate password reset token
+     */
+    public function generatePasswordResetToken(int $userId): string
+    {
+        $token = bin2hex(random_bytes(32));
+        
+        // In a real implementation, this would be stored in database
+        $_SESSION['password_reset_tokens'][$token] = [
+            'user_id' => $userId,
+            'created' => time(),
+            'expires' => time() + 3600 // 1 hour
+        ];
+        
+        return $token;
+    }
+
+    /**
+     * Validate password strength
+     */
+    public function validatePasswordStrength(string $password): array
+    {
+        $result = ['valid' => true, 'message' => '', 'score' => 0];
+        $issues = [];
+        
+        $minLength = $this->config['password_min_length'];
+        
+        if (strlen($password) < $minLength) {
+            $issues[] = "Must be at least {$minLength} characters long";
+            $result['valid'] = false;
+        } else {
+            $result['score'] += 1;
+        }
+        
+        if (!preg_match('/[a-z]/', $password)) {
+            $issues[] = "Must contain at least one lowercase letter";
+            $result['valid'] = false;
+        } else {
+            $result['score'] += 1;
+        }
+        
+        if (!preg_match('/[A-Z]/', $password)) {
+            $issues[] = "Must contain at least one uppercase letter";
+            $result['valid'] = false;
+        } else {
+            $result['score'] += 1;
+        }
+        
+        if (!preg_match('/\d/', $password)) {
+            $issues[] = "Must contain at least one number";
+            $result['valid'] = false;
+        } else {
+            $result['score'] += 1;
+        }
+        
+        if (!preg_match('/[^a-zA-Z\d]/', $password)) {
+            $issues[] = "Must contain at least one special character";
+            $result['valid'] = false;
+        } else {
+            $result['score'] += 1;
+        }
+        
+        if (!empty($issues)) {
+            $result['message'] = implode(', ', $issues);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Sanitize array of inputs
+     */
+    public function sanitizeArray(array $input): array
+    {
+        $sanitized = [];
+        
+        foreach ($input as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->sanitizeArray($value);
+            } else {
+                $sanitized[$key] = is_string($value) ? trim($value) : $value;
+            }
+        }
+        
+        return $sanitized;
     }
 
     /**

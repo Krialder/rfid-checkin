@@ -9,9 +9,8 @@ use Exception;
 /**
  * Configuration Service
  * 
- * Centralizes all application configuration management including
- * environment variables, database settings, security options,
- * and feature flags. Replaces scattered configuration loading.
+ * Manages all application configuration including environment variables,
+ * database settings, security options, and feature flags.
  * 
  * Features:
  * - Environment-specific configurations
@@ -23,7 +22,6 @@ use Exception;
  * 
  * @package RfidCheckin\Services
  * @version 1.0.0
- * @author Senior Development Team
  */
 class ConfigurationService
 {
@@ -31,29 +29,52 @@ class ConfigurationService
     private array $config = [];
     private array $environmentDefaults = [];
     private string $environment;
-    private LoggingService $logger;
+    private ?LoggingService $logger = null;
+    private ?string $configPath;
 
     /**
      * Private constructor for singleton pattern
      */
-    private function __construct()
+    private function __construct(string $configPath = null)
     {
-        $this->logger = LoggingService::getInstance();
+        // Store config path for potential future use, but don't require legacy config file
+        $this->configPath = $configPath;
         $this->environment = $_ENV['APP_ENV'] ?? 'production';
         $this->loadEnvironmentDefaults();
         $this->loadConfiguration();
         $this->validateConfiguration();
+        
+        // Initialize logger after configuration is loaded to avoid circular dependency
+        $this->initializeLogger();
     }
 
     /**
      * Get singleton instance
      */
-    public static function getInstance(): self
+    public static function getInstance(string $configPath = null): self
     {
         if (self::$instance === null) {
-            self::$instance = new self();
+            self::$instance = new self($configPath);
         }
         return self::$instance;
+    }
+    
+    /**
+     * Initialize logger after configuration is ready
+     */
+    private function initializeLogger(): void
+    {
+        try {
+            $this->logger = LoggingService::getInstance();
+            $this->logger->debug('Configuration loaded', [
+                'environment' => $this->environment,
+                'config_keys' => array_keys($this->config)
+            ]);
+            $this->logger->info('Configuration validation successful');
+        } catch (Exception $e) {
+            // Logger not available yet, skip logging
+            error_log("ConfigurationService: Could not initialize logger: " . $e->getMessage());
+        }
     }
 
     /**
@@ -131,15 +152,15 @@ class ConfigurationService
 
             // Security Configuration
             'security' => [
-                'session_lifetime' => $this->getIntEnv('SESSION_LIFETIME', $defaults['SESSION_LIFETIME'] ?? '3600'),
-                'session_regenerate_interval' => $this->getIntEnv('SESSION_REGENERATE_INTERVAL', '600'),
-                'csrf_token_lifetime' => $this->getIntEnv('CSRF_TOKEN_LIFETIME', $defaults['CSRF_TOKEN_LIFETIME'] ?? '3600'),
-                'password_min_length' => $this->getIntEnv('PASSWORD_MIN_LENGTH', '8'),
-                'max_login_attempts' => $this->getIntEnv('MAX_LOGIN_ATTEMPTS', '5'),
-                'lockout_duration' => $this->getIntEnv('LOCKOUT_DURATION', '1800'),
+                'session_lifetime' => $this->getIntEnv('SESSION_LIFETIME', (int)($defaults['SESSION_LIFETIME'] ?? 3600)),
+                'session_regenerate_interval' => $this->getIntEnv('SESSION_REGENERATE_INTERVAL', 600),
+                'csrf_token_lifetime' => $this->getIntEnv('CSRF_TOKEN_LIFETIME', (int)($defaults['CSRF_TOKEN_LIFETIME'] ?? 3600)),
+                'password_min_length' => $this->getIntEnv('PASSWORD_MIN_LENGTH', 8),
+                'max_login_attempts' => $this->getIntEnv('MAX_LOGIN_ATTEMPTS', 5),
+                'lockout_duration' => $this->getIntEnv('LOCKOUT_DURATION', 1800),
                 'rate_limit_enabled' => $this->getBoolEnv('RATE_LIMIT_ENABLED', $defaults['RATE_LIMIT_ENABLED'] ?? 'true'),
-                'rate_limit_window' => $this->getIntEnv('RATE_LIMIT_WINDOW', '60'),
-                'max_requests_per_window' => $this->getIntEnv('MAX_REQUESTS_PER_WINDOW', '100'),
+                'rate_limit_window' => $this->getIntEnv('RATE_LIMIT_WINDOW', 60),
+                'max_requests_per_window' => $this->getIntEnv('MAX_REQUESTS_PER_WINDOW', 100),
                 'security_headers' => $this->getBoolEnv('SECURITY_HEADERS', $defaults['SECURITY_HEADERS'] ?? 'true'),
             ],
 
@@ -156,12 +177,12 @@ class ConfigurationService
                 'enabled' => $this->getBoolEnv('CACHE_ENABLED', $defaults['CACHE_ENABLED'] ?? 'true'),
                 'type' => $this->getEnv('CACHE_TYPE', 'file'),
                 'file_path' => $this->getEnv('CACHE_FILE_PATH', dirname(__DIR__, 2) . '/cache'),
-                'default_ttl' => $this->getIntEnv('CACHE_DEFAULT_TTL', '300'),
+                'default_ttl' => $this->getIntEnv('CACHE_DEFAULT_TTL', 300),
             ],
 
             // File Upload Configuration
             'upload' => [
-                'max_file_size' => $this->getIntEnv('MAX_FILE_SIZE', '5242880'), // 5MB
+                'max_file_size' => $this->getIntEnv('MAX_FILE_SIZE', 5242880), // 5MB
                 'allowed_types' => explode(',', $this->getEnv('ALLOWED_FILE_TYPES', 'jpg,jpeg,png,gif,pdf,doc,docx')),
                 'upload_path' => $this->getEnv('UPLOAD_PATH', dirname(__DIR__, 2) . '/uploads'),
                 'temp_path' => $this->getEnv('TEMP_PATH', sys_get_temp_dir()),
@@ -182,16 +203,16 @@ class ConfigurationService
             // API Configuration
             'api' => [
                 'rate_limit_enabled' => $this->getBoolEnv('API_RATE_LIMIT_ENABLED', 'true'),
-                'rate_limit_per_minute' => $this->getIntEnv('API_RATE_LIMIT_PER_MINUTE', '60'),
-                'pagination_default_limit' => $this->getIntEnv('API_PAGINATION_DEFAULT_LIMIT', '20'),
-                'pagination_max_limit' => $this->getIntEnv('API_PAGINATION_MAX_LIMIT', '100'),
+                'rate_limit_per_minute' => $this->getIntEnv('API_RATE_LIMIT_PER_MINUTE', 60),
+                'pagination_default_limit' => $this->getIntEnv('API_PAGINATION_DEFAULT_LIMIT', 20),
+                'pagination_max_limit' => $this->getIntEnv('API_PAGINATION_MAX_LIMIT', 100),
             ],
 
             // Hardware Configuration
             'hardware' => [
                 'rfid_enabled' => $this->getBoolEnv('RFID_ENABLED', 'true'),
-                'device_timeout' => $this->getIntEnv('DEVICE_TIMEOUT', '30'),
-                'max_devices' => $this->getIntEnv('MAX_DEVICES', '50'),
+                'device_timeout' => $this->getIntEnv('DEVICE_TIMEOUT', 30),
+                'max_devices' => $this->getIntEnv('MAX_DEVICES', 50),
             ],
 
             // Feature Flags
@@ -205,10 +226,8 @@ class ConfigurationService
             ]
         ];
 
-        $this->logger->debug('Configuration loaded', [
-            'environment' => $this->environment,
-            'config_keys' => array_keys($this->config)
-        ]);
+        // Initialize logger after configuration is loaded to avoid circular dependency
+        $this->initializeLogger();
     }
 
     /**
@@ -254,8 +273,6 @@ class ConfigurationService
                 throw new Exception('Email enabled but missing configuration: ' . implode(', ', $emailMissing));
             }
         }
-
-        $this->logger->info('Configuration validation successful');
     }
 
     /**
@@ -303,10 +320,12 @@ class ConfigurationService
 
         $config = $value;
 
-        $this->logger->debug('Configuration value updated', [
-            'key' => $key,
-            'value' => is_array($value) ? '[array]' : $value
-        ]);
+        if ($this->logger) {
+            $this->logger->debug('Configuration value updated', [
+                'key' => $key,
+                'value' => is_array($value) ? '[array]' : $value
+            ]);
+        }
     }
 
     /**

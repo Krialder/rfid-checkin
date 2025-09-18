@@ -1,6 +1,6 @@
-# Hardware Directory
+# Hardware Directory - Modern Service Integration
 
-This directory contains firmware and configuration files for ESP32-based RFID readers that integrate with the RFID Check-in System.
+This directory contains firmware and configuration files for ESP32-based RFID readers that integrate with the modern RFID Check-in System service architecture.
 
 ## 📁 Directory Structure
 
@@ -12,7 +12,24 @@ hardware/
 
 ## 🔌 Hardware Overview
 
-The RFID Check-in System supports ESP32 microcontrollers with RC522 RFID modules for seamless hardware integration with the web-based system.
+The RFID Check-in System supports ESP32 microcontrollers with RC522 RFID modules for seamless hardware integration with the modern service-based web system.
+
+### Integration with Modern Services
+
+**Service Architecture Integration:**
+- **ConfigurationService**: Hardware configuration managed through environment variables
+- **DatabaseService**: RFID scan data processed through modern repository patterns
+- **LoggingService**: Hardware events logged with structured context
+- **API Integration**: RESTful endpoints for hardware communication
+
+**Modern Communication Patterns:**
+```
+ESP32 Hardware → HTTP/HTTPS → Modern API → Service Layer → Database
+                                    ↓
+                            LoggingService (audit trail)
+                                    ↓
+                            Real-time dashboard updates
+```
 
 ### Supported Hardware
 

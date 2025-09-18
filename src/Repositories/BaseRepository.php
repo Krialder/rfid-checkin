@@ -526,4 +526,40 @@ abstract class BaseRepository
         
         return $sanitized;
     }
+
+    /**
+     * Execute a query and return results
+     * 
+     * @param string $sql SQL query
+     * @param array $params Query parameters
+     * @return array Query results
+     */
+    protected function executeQuery(string $sql, array $params = []): array
+    {
+        return $this->db->select($sql, $params);
+    }
+
+    /**
+     * Execute an insert query and return last insert ID
+     * 
+     * @param string $sql SQL query
+     * @param array $params Query parameters
+     * @return int Last insert ID
+     */
+    protected function executeInsert(string $sql, array $params = []): int
+    {
+        return (int) $this->db->insert($sql, $params);
+    }
+
+    /**
+     * Execute an update query and return affected rows
+     * 
+     * @param string $sql SQL query
+     * @param array $params Query parameters
+     * @return int Affected rows
+     */
+    protected function executeUpdate(string $sql, array $params = []): int
+    {
+        return $this->db->update($sql, $params);
+    }
 }

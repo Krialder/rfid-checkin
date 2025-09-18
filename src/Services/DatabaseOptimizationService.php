@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Services;
+declare(strict_types=1);
 
-use App\Core\Database;
-use App\Core\LoggingService;
-use App\Core\ConfigurationService;
+namespace RfidCheckin\Services;
+
+use RfidCheckin\Services\DatabaseService;
+use RfidCheckin\Services\LoggingService;
+use RfidCheckin\Services\ConfigurationService;
 use Exception;
 
 /**

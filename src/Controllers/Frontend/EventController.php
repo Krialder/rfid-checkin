@@ -7,7 +7,7 @@ namespace App\Controllers\Frontend;
 use App\Services\EventService;
 use App\Services\UserGroupService;
 use App\Services\UserService;
-use App\Core\LoggingService;
+use RfidCheckin\Services\LoggingService;
 use App\Core\SecurityManager;
 use App\Core\TemplateEngine;
 use App\Services\PerformanceCacheService;

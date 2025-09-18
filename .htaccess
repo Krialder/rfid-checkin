@@ -1,0 +1,58 @@
+# RFID Check-in System - Apache Configuration
+# Enables clean URLs and proper routing
+
+# Enable URL rewriting
+RewriteEngine On
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Block access to sensitive files and directories (temporarily disabled for testing)
+# RewriteRule ^\.env$ - [F,L]
+# RewriteRule ^bootstrap\.php$ - [F,L]  # Allow bootstrap.php access for application
+# RewriteRule ^core/ - [F,L]
+# RewriteRule ^src/ - [F,L]
+# RewriteRule ^logs/ - [F,L]
+# RewriteRule ^tests/ - [F,L]
+# RewriteRule ^database/ - [F,L]
+# RewriteRule ^vendor/ - [F,L]
+# RewriteRule ^\.git/ - [F,L]
+
+# Allow access to assets
+RewriteRule ^assets/ - [L]
+
+# Handle API and frontend routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Enable compression for better performance
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>

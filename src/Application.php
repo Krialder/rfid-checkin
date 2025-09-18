@@ -19,7 +19,6 @@ use Exception;
  * and handles the request/response lifecycle.
  * 
  * @package RfidCheckin
- * @author Kralder
  */
 class Application
 {
@@ -65,7 +64,6 @@ class Application
      */
     private function initializeConfiguration(string $configPath = null): void
     {
-        $configPath = $configPath ?? dirname(__DIR__) . '/core/config.php';
         $this->config = ConfigurationService::getInstance($configPath);
         
         // Set error reporting based on environment
@@ -137,6 +135,7 @@ class Application
         // Load custom routes if they exist
         $customRoutesFile = dirname(__DIR__) . '/config/routes.php';
         if (file_exists($customRoutesFile)) {
+            $router = $this->router; // Make router available to routes file
             require $customRoutesFile;
         }
     }

@@ -63,6 +63,18 @@ class UserRepository extends BaseRepository
     }
 
     /**
+     * Find user by email
+     * 
+     * @param string $email Email address
+     * @return array|null User data or null if not found
+     * @throws Exception If query fails
+     */
+    public function findByEmail(string $email): ?array
+    {
+        return $this->findByEmailOrUsername($email);
+    }
+
+    /**
      * Find user by RFID tag
      * 
      * @param string $rfidTag RFID tag value
@@ -207,27 +219,6 @@ class UserRepository extends BaseRepository
         $this->incrementFailedLoginAttempts($user['user_id']);
         
         return null;
-    }
-
-    /**
-     * Update last login timestamp
-     * 
-     * @param int $userId User ID
-     * @return bool True if successful
-     * @throws Exception If update fails
-     */
-    public function updateLastLogin(int $userId): bool
-    {
-        $affectedRows = $this->update($userId, [
-            'last_login' => date('Y-m-d H:i:s')
-        ]);
-        
-        if ($affectedRows > 0) {
-            $this->cacheClear();
-            return true;
-        }
-        
-        return false;
     }
 
     /**
@@ -409,6 +400,76 @@ class UserRepository extends BaseRepository
         $stats['recent_registrations'] = $recentResult['count'];
         
         return $stats;
+    }
+
+    /**
+     * Get total user count
+     */
+    public function getTotalCount(): int
+    {
+        return $this->count();
+    }
+
+    /**
+     * Get active user count
+     */
+    public function getActiveCount(): int
+    {
+        return $this->count(['is_active' => 1]);
+    }
+
+    /**
+     * Get pending user count
+     */
+    public function getPendingCount(): int
+    {
+        return $this->count(['is_active' => 0]);
+    }
+
+    /**
+     * Get RFID tag count
+     */
+    public function getRfidTagCount(): int
+    {
+        $query = "SELECT COUNT(*) as count FROM {$this->tableName} WHERE rfid_tag IS NOT NULL AND rfid_tag != ''";
+        $result = $this->db->selectOne($query);
+        return (int) $result['count'];
+    }
+
+    /**
+     * Get recent users
+     */
+    public function getRecentUsers(int $limit = 20): array
+    {
+        $query = "
+            SELECT user_id, username, first_name, last_name, email, role, created_at
+            FROM {$this->tableName} 
+            WHERE is_active = 1 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        ";
+        
+        return $this->db->select($query, [$limit]);
+    }
+
+    /**
+     * Update last login with IP
+     */
+    public function updateLastLogin(int $userId, string $ipAddress = ''): bool
+    {
+        $data = ['last_login' => date('Y-m-d H:i:s')];
+        if ($ipAddress) {
+            $data['last_login_ip'] = $ipAddress;
+        }
+        
+        $affectedRows = $this->update($userId, $data);
+        
+        if ($affectedRows > 0) {
+            $this->cacheClear();
+            return true;
+        }
+        
+        return false;
     }
 
     /**

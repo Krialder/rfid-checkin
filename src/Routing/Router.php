@@ -21,11 +21,10 @@ use Exception;
  * - Middleware integration
  * - Named routes and URL generation
  * - Route caching for performance
- * - Custom error handling
+ * - Error handling
  * 
  * @package RfidCheckin\Routing
  * @version 1.0.0
- * @author Senior Development Team
  */
 class Router
 {
@@ -162,7 +161,7 @@ class Router
     /**
      * Add GET route
      */
-    public function get(string $path, string $handler, string $name = null): void
+    public function get(string $path, $handler, string $name = null): void
     {
         $this->addRoute('GET', $path, $handler, $name);
     }
@@ -170,7 +169,7 @@ class Router
     /**
      * Add POST route
      */
-    public function post(string $path, string $handler, string $name = null): void
+    public function post(string $path, $handler, string $name = null): void
     {
         $this->addRoute('POST', $path, $handler, $name);
     }
@@ -213,7 +212,7 @@ class Router
     /**
      * Add route to collection
      */
-    private function addRoute(string $method, string $path, string $handler, string $name = null): void
+    private function addRoute(string $method, string $path, $handler, string $name = null): void
     {
         // Apply current group prefix
         $fullPath = $this->currentGroupPrefix . $path;
@@ -388,7 +387,14 @@ class Router
     {
         $handler = $route['handler'];
         
-        // Parse handler (Controller@method format)
+        // Handle closure
+        if (is_callable($handler)) {
+            // Execute closure directly
+            call_user_func_array($handler, $parameters);
+            return;
+        }
+        
+        // Handle string handler (Controller@method format)
         if (strpos($handler, '@') !== false) {
             [$controllerClass, $method] = explode('@', $handler, 2);
         } else {

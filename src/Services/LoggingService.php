@@ -7,11 +7,10 @@ namespace RfidCheckin\Services;
 use Exception;
 
 /**
- * Centralized Logging Service
+ * Logging Service
  * 
- * Provides comprehensive logging functionality with multiple log levels,
+ * Provides logging functionality with multiple log levels,
  * file rotation, and structured logging for debugging and monitoring.
- * Replaces scattered logging patterns throughout the application.
  * 
  * Features:
  * - PSR-3 compliant log levels
@@ -19,11 +18,10 @@ use Exception;
  * - File rotation and size management
  * - Performance logging
  * - Security event logging
- * - Error tracking and aggregation
+ * - Error tracking
  * 
  * @package RfidCheckin\Services
  * @version 1.0.0
- * @author Senior Development Team
  */
 class LoggingService
 {
@@ -31,6 +29,7 @@ class LoggingService
     private string $logDirectory;
     private string $logLevel;
     private bool $debugMode;
+    private ?ConfigurationService $config = null;
     private array $logLevels = [
         'DEBUG' => 0,
         'INFO' => 1,
@@ -44,11 +43,44 @@ class LoggingService
      */
     private function __construct()
     {
+        // Initialize with basic settings first, avoid ConfigurationService dependency
         $this->logDirectory = dirname(__DIR__, 2) . '/logs';
         $this->logLevel = $_ENV['LOG_LEVEL'] ?? 'INFO';
         $this->debugMode = ($_ENV['DEBUG_MODE'] ?? 'false') === 'true';
         
         $this->ensureLogDirectory();
+        
+        // Try to get configuration service if available (after it's initialized)
+        $this->initializeConfiguration();
+    }
+    
+    /**
+     * Initialize configuration if available (safe method to avoid circular dependencies)
+     */
+    private function initializeConfiguration(): void
+    {
+        try {
+            // Only try to get configuration if ConfigurationService is already initialized
+            if (class_exists('RfidCheckin\Services\ConfigurationService')) {
+                $reflection = new \ReflectionClass('RfidCheckin\Services\ConfigurationService');
+                $instanceProperty = $reflection->getProperty('instance');
+                $instanceProperty->setAccessible(true);
+                
+                if ($instanceProperty->getValue() !== null) {
+                    $this->config = \RfidCheckin\Services\ConfigurationService::getInstance();
+                    
+                    // Update settings from configuration
+                    $this->logDirectory = $this->config->get('logging.file_path', $this->logDirectory);
+                    $this->logLevel = $this->config->get('logging.level', $this->logLevel);
+                    $this->debugMode = $this->config->get('app.debug_mode', $this->debugMode);
+                    
+                    $this->ensureLogDirectory();
+                }
+            }
+        } catch (Exception $e) {
+            // Configuration not available yet or circular dependency, use defaults
+            // Don't use error_log here to avoid potential recursion
+        }
     }
 
     /**
@@ -190,7 +222,7 @@ class LoggingService
      * @param string $message Log message
      * @param array $context Additional context data
      */
-    private function log(string $level, string $message, array $context = []): void
+    public function log(string $level, string $message, array $context = []): void
     {
         if (!$this->shouldLog($level)) {
             return;
