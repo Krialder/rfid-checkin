@@ -37,7 +37,7 @@
                     <li><a href="/profile" class="footer-link">My Profile</a></li>
                     <li><a href="/help" class="footer-link">Help & Support</a></li>
                     
-                    <?php if ($current_user['group_id'] <= 2): ?>
+                    <?php if (isset($current_user['group_id']) && $current_user['group_id'] <= 2): ?>
                         <li><a href="/admin" class="footer-link">Admin Panel</a></li>
                         <li><a href="/analytics" class="footer-link">Analytics</a></li>
                     <?php endif; ?>

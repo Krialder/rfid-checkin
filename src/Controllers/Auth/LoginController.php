@@ -4,29 +4,25 @@ declare(strict_types=1);
 
 namespace RfidCheckin\Controllers\Auth;
 
-use RfidCheckin\Controllers\BaseFrontendController;
-use RfidCheckin\Services\AuthenticationService;
-use RfidCheckin\Services\SecurityService;
-use RfidCheckin\Repositories\UserRepository;
+use RfidCheckin\Controllers\SimpleBaseController;
+use RfidCheckin\Services\DatabaseService;
+use RfidCheckin\Services\LoggingService;
 
 /**
  * Login Controller
  * 
- * Handles user authentication including login, logout, and related security operations.
- * Implements secure authentication with rate limiting and security logging.
+ * Handles user authentication
  * 
  * @package RfidCheckin\Controllers\Auth
  */
-class LoginController extends BaseFrontendController
+class LoginController extends SimpleBaseController
 {
-    private SecurityService $security;
-    private UserRepository $userRepo;
+    private DatabaseService $db;
 
     public function __construct()
     {
         parent::__construct();
-        $this->security = SecurityService::getInstance();
-        $this->userRepo = new UserRepository();
+        $this->db = DatabaseService::getInstance();
     }
 
     /**
@@ -34,186 +30,154 @@ class LoginController extends BaseFrontendController
      */
     public function showLoginForm(): void
     {
-        // Redirect if already authenticated
-        if ($this->auth->isAuthenticated()) {
-            $this->redirect('/dashboard');
-            return;
+        // If already authenticated, redirect to dashboard
+        if ($this->isAuthenticated()) {
+            header('Location: /dashboard');
+            exit;
         }
 
-        // Check for rate limiting
-        $clientIp = $this->getClientIp();
-        if ($this->security->isRateLimited($clientIp, 'login_attempts')) {
-            $this->render('auth/login', [
-                'error' => 'Too many login attempts. Please try again later.',
-                'rate_limited' => true
-            ], ['title' => 'Login - Rate Limited']);
-            return;
-        }
-
-        $data = [
-            'csrf_token' => $this->security->generateCsrfToken(),
-            'redirect_after' => $_GET['redirect'] ?? '/dashboard',
-            'login_attempts' => $this->security->getFailedAttempts($clientIp)
-        ];
-
-        $this->render('auth/login', $data, [
-            'title' => 'Login',
-            'page_class' => 'login-page',
-            'no_header' => true,
-            'no_footer' => true
+        $this->render('auth/login', [
+            'title' => 'Login - RFID Check-in System',
+            'error' => $_SESSION['login_error'] ?? null
         ]);
+
+        // Clear error message
+        unset($_SESSION['login_error']);
     }
 
     /**
-     * Process login attempt
+     * Process login
      */
     public function login(): void
     {
-        $this->requireMethod('POST');
-        
-        $clientIp = $this->getClientIp();
-        
-        // Check rate limiting
-        if ($this->security->isRateLimited($clientIp, 'login_attempts')) {
-            $this->logger->security('login_rate_limited', 'Login attempt blocked due to rate limiting', [
-                'ip_address' => $clientIp
-            ]);
-            
-            $this->renderJson(['error' => 'Too many login attempts'], 429);
-            return;
-        }
-
-        // Validate CSRF token
-        if (!$this->security->validateCsrfToken($_POST['csrf_token'] ?? '')) {
-            $this->logger->security('csrf_validation_failed', 'CSRF token validation failed on login', [
-                'ip_address' => $clientIp
-            ]);
-            
-            $this->renderJson(['error' => 'Invalid request'], 400);
-            return;
-        }
-
-        $input = $this->sanitizeInput($_POST);
-        $email = $input['email'] ?? '';
+        $input = $this->getInput();
+        $username = $input['username'] ?? '';
         $password = $input['password'] ?? '';
-        $rememberMe = !empty($input['remember_me']);
 
         // Validate input
-        if (empty($email) || empty($password)) {
-            $this->security->recordFailedAttempt($clientIp);
-            $this->renderJson(['error' => 'Email and password are required'], 400);
+        if (empty($username) || empty($password)) {
+            $this->handleLoginError('Please enter both username and password');
             return;
         }
 
         try {
-            // Attempt authentication
-            $result = $this->auth->authenticate($email, $password, $rememberMe);
+            // Find user
+            $user = $this->db->selectOne(
+                "SELECT id, username, first_name, last_name, password_hash, role, is_active, groups 
+                 FROM users WHERE username = ? AND is_active = 1",
+                [$username]
+            );
 
-            if ($result['success']) {
-                $user = $result['user'];
-                
-                // Clear failed attempts
-                $this->security->clearFailedAttempts($clientIp);
-                
-                // Log successful login
-                $this->logger->security('login_success', 'User logged in successfully', [
-                    'user_id' => $user['user_id'],
-                    'email' => $user['email'],
-                    'ip_address' => $clientIp,
-                    'remember_me' => $rememberMe
-                ]);
+            if (!$user) {
+                $this->handleLoginError('Invalid username or password');
+                return;
+            }
 
-                // Update last login
-                $this->userRepo->updateLastLogin($user['user_id'], $clientIp);
+            // Verify password
+            if (!password_verify($password, $user['password_hash'])) {
+                $this->handleLoginError('Invalid username or password');
+                return;
+            }
 
-                $redirectUrl = $input['redirect_after'] ?? '/dashboard';
-                
-                if ($this->isAjaxRequest()) {
-                    $this->renderJson([
-                        'success' => true,
-                        'message' => 'Login successful',
-                        'redirect' => $redirectUrl,
-                        'user' => [
-                            'id' => $user['user_id'],
-                            'name' => $user['full_name'],
-                            'role' => $user['role']
-                        ]
-                    ]);
-                } else {
-                    $this->redirect($redirectUrl);
-                }
-                
+            // Create session
+            $this->createUserSession($user);
+
+            // Log successful login
+            $this->logger->info('User logged in', [
+                'user_id' => $user['id'],
+                'username' => $user['username'],
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
+
+            // Redirect based on request type
+            if ($this->isAjaxRequest()) {
+                $this->success([
+                    'redirect' => '/dashboard',
+                    'user' => [
+                        'id' => $user['id'],
+                        'username' => $user['username'],
+                        'name' => $user['first_name'] . ' ' . $user['last_name'],
+                        'role' => $user['role']
+                    ]
+                ], 'Login successful');
             } else {
-                // Record failed attempt
-                $this->security->recordFailedAttempt($clientIp, $email);
-                
-                $this->logger->security('login_failed', 'Login attempt failed', [
-                    'email' => $email,
-                    'ip_address' => $clientIp,
-                    'reason' => $result['message']
-                ]);
-
-                if ($this->isAjaxRequest()) {
-                    $this->renderJson(['error' => $result['message']], 401);
-                } else {
-                    $this->redirectWithError('/auth/login', $result['message']);
-                }
+                header('Location: /dashboard');
+                exit;
             }
 
         } catch (\Exception $e) {
-            $this->logger->error('Login system error', [
-                'email' => $email,
-                'ip_address' => $clientIp,
+            $this->logger->error('Login error', [
+                'username' => $username,
                 'error' => $e->getMessage()
             ]);
-
-            $this->security->recordFailedAttempt($clientIp);
-
-            if ($this->isAjaxRequest()) {
-                $this->renderJson(['error' => 'System error occurred'], 500);
-            } else {
-                $this->redirectWithError('/auth/login', 'System error occurred');
-            }
+            
+            $this->handleLoginError('An error occurred during login. Please try again.');
         }
     }
 
     /**
-     * Logout user
+     * Process logout
      */
     public function logout(): void
     {
-        $this->requireMethod('POST');
+        $userId = $this->getCurrentUserId();
 
-        if ($this->auth->isAuthenticated()) {
-            $user = $this->auth->getCurrentUser();
-            
-            $this->logger->security('logout', 'User logged out', [
-                'user_id' => $user['user_id'],
-                'email' => $user['email'],
-                'ip_address' => $this->getClientIp()
+        // Log logout
+        if ($userId) {
+            $this->logger->info('User logged out', [
+                'user_id' => $userId,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
             ]);
-
-            $this->auth->logout();
         }
 
+        // Destroy session
+        session_destroy();
+        session_start(); // Start a new clean session
+
         if ($this->isAjaxRequest()) {
-            $this->renderJson(['success' => true, 'redirect' => '/auth/login']);
+            $this->success(['redirect' => '/auth/login'], 'Logged out successfully');
         } else {
-            $this->redirect('/auth/login');
+            header('Location: /auth/login');
+            exit;
         }
     }
 
     /**
-     * Get client IP address
+     * Create user session
      */
-    private function getClientIp(): string
+    private function createUserSession(array $user): void
     {
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            return $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+        // Regenerate session ID for security
+        session_regenerate_id(true);
+
+        // Set session data
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
+        $_SESSION['user_role'] = $user['role'];
+        $_SESSION['user_groups'] = $user['groups'] ? explode(',', $user['groups']) : [];
+        $_SESSION['login_time'] = time();
+        $_SESSION['last_activity'] = time();
+    }
+
+    /**
+     * Handle login error
+     */
+    private function handleLoginError(string $message): void
+    {
+        // Log failed login attempt
+        $this->logger->warning('Failed login attempt', [
+            'username' => $_POST['username'] ?? '',
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        ]);
+
+        if ($this->isAjaxRequest()) {
+            $this->error($message, 401);
         } else {
-            return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $_SESSION['login_error'] = $message;
+            header('Location: /auth/login');
+            exit;
         }
     }
 }

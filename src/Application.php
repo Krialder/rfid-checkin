@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace RfidCheckin;
 
+// Load autoloader if not already loaded
+if (!class_exists('RfidCheckin\Services\ConfigurationService')) {
+    require_once __DIR__ . '/autoload.php';
+}
+
 use RfidCheckin\Services\ConfigurationService;
 use RfidCheckin\Services\DatabaseService;
 use RfidCheckin\Services\LoggingService;
@@ -19,6 +24,7 @@ use Exception;
  * and handles the request/response lifecycle.
  * 
  * @package RfidCheckin
+ * @author Kralder
  */
 class Application
 {
@@ -64,6 +70,7 @@ class Application
      */
     private function initializeConfiguration(string $configPath = null): void
     {
+        $configPath = $configPath ?? dirname(__DIR__) . '/config/config.php';
         $this->config = ConfigurationService::getInstance($configPath);
         
         // Set error reporting based on environment
@@ -132,12 +139,8 @@ class Application
     {
         $this->router = new Router($this->middleware);
         
-        // Load custom routes if they exist
-        $customRoutesFile = dirname(__DIR__) . '/config/routes.php';
-        if (file_exists($customRoutesFile)) {
-            $router = $this->router; // Make router available to routes file
-            require $customRoutesFile;
-        }
+        // Load routes from routes.php file
+        $this->router->loadRoutes();
     }
 
     /**
@@ -150,19 +153,25 @@ class Application
         }
 
         try {
+            error_log("APPLICATION: Starting run() method");
+            
             // Start session
             $this->startSession();
+            error_log("APPLICATION: Session started");
             
             // Log request
             $this->logRequest();
+            error_log("APPLICATION: Request logged, calling router dispatch");
             
             // Dispatch request through router
             $this->router->dispatch();
+            error_log("APPLICATION: Router dispatch completed");
             
             // Log response
             $this->logResponse();
             
         } catch (Exception $e) {
+            error_log("APPLICATION: Exception in run(): " . $e->getMessage());
             $this->handleApplicationError($e);
         }
     }
@@ -218,14 +227,18 @@ class Application
         $executionTime = microtime(true) - $this->startTime;
         $memoryUsage = memory_get_peak_usage(true);
         
-        $logLevel = $responseCode >= 400 ? 'warning' : 'info';
-        
-        $this->logger->log($logLevel, 'Request completed', [
+        $logData = [
             'response_code' => $responseCode,
             'execution_time' => round($executionTime, 4),
             'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . 'MB',
             'queries_executed' => $this->database->getQueryCount()
-        ]);
+        ];
+        
+        if ($responseCode >= 400) {
+            $this->logger->warning('Request completed', $logData);
+        } else {
+            $this->logger->info('Request completed', $logData);
+        }
     }
 
     /**

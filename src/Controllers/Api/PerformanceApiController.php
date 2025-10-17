@@ -5,7 +5,7 @@ namespace App\Controllers\Api;
 use App\Services\PerformanceCacheService;
 use App\Services\DatabaseOptimizationService;
 use App\Services\AssetOptimizationService;
-use RfidCheckin\Services\LoggingService;
+use App\Core\LoggingService;
 use Exception;
 
 /**
@@ -565,6 +565,21 @@ class PerformanceApiController
             'cache_info' => $stats['cache_info'] ?? [],
             'cdn_info' => $stats['cdn_info'] ?? [],
             'performance_metrics' => $stats['performance_metrics'] ?? []
+        ];
+    }
+    
+    private function getSystemMetrics(): array
+    {
+        return [
+            'php_version' => PHP_VERSION,
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size'),
+            'opcache_enabled' => extension_loaded('opcache') && ini_get('opcache.enable'),
+            'extensions' => $this->getLoadedExtensions(),
+            'disk_free_space' => disk_free_space('.'),
+            'disk_total_space' => disk_total_space('.')
         ];
     }
     

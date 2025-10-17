@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace RfidCheckin\Models;
 
+use App\Core\Database;
+use DateTime;
+use PDO;
+
 /**
  * User Model
  * 
@@ -16,237 +20,233 @@ namespace RfidCheckin\Models;
  */
 class User extends BaseModel
 {
-    protected array $fillable = [
-        'user_id', 'firstname', 'lastname', 'email', 'password', 
-        'rfid_tag', 'status', 'group_id', 'created_by', 'avatar',
-        'last_access', 'failed_login_attempts', 'locked_until',
-        'email_verified_at', 'phone', 'department', 'metadata'
-    ];
-
-    protected array $hidden = [
-        'password'
-    ];
-
-    protected array $casts = [
-        'user_id' => 'int',
-        'group_id' => 'int',
-        'created_by' => 'int',
-        'failed_login_attempts' => 'int',
-        'status' => 'string',
-        'email_verified_at' => 'datetime',
-        'last_access' => 'datetime',
-        'locked_until' => 'datetime',
-        'metadata' => 'json'
-    ];
-
-    protected array $dates = [
-        'created_at', 'updated_at', 'email_verified_at', 
-        'last_access', 'locked_until'
-    ];
-
-    /**
-     * Get user's full name
-     * 
-     * @return string Full name
-     */
+    private ?int $id = null;
+    private string $firstName;
+    private string $lastName;
+    private string $email;
+    private string $passwordHash;
+    private UserRole $role;
+    private ?string $rfidCard = null;
+    private UserStatus $status;
+    private ?DateTime $createdAt = null;
+    private ?DateTime $updatedAt = null;
+    
+    // Apprentice-specific fields
+    private ?int $yearLevel = null;
+    private ?string $specialization = null;
+    private ?DateTime $enrollmentDate = null;
+    
+    private $db;
+    
+    public function __construct()
+    {
+        $this->status = UserStatus::ACTIVE;
+        $this->role = UserRole::APPRENTICE;
+        $this->db = Database::getInstance()->getConnection();
+    }
+    
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    
+    public function setId(int $id): void
+    {
+        $this->id = $id;
+    }
+    
     public function getFullName(): string
     {
-        return trim($this->getAttribute('firstname', '') . ' ' . $this->getAttribute('lastname', ''));
+        return $this->firstName . ' ' . $this->lastName;
     }
-
-    /**
-     * Get user's initials
-     * 
-     * @return string Initials
-     */
-    public function getInitials(): string
+    
+    public function setFirstName(string $firstName): void
     {
-        $firstname = $this->getAttribute('firstname', '');
-        $lastname = $this->getAttribute('lastname', '');
-        
-        return strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
+        $this->firstName = $firstName;
     }
-
-    /**
-     * Check if user is active
-     * 
-     * @return bool True if active
-     */
+    
+    public function getFirstName(): string
+    {
+        return $this->firstName;
+    }
+    
+    public function setLastName(string $lastName): void
+    {
+        $this->lastName = $lastName;
+    }
+    
+    public function getLastName(): string
+    {
+        return $this->lastName;
+    }
+    
+    public function setEmail(string $email): void
+    {
+        $this->email = $email;
+    }
+    
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+    
+    public function setPassword(string $password): void
+    {
+        $this->passwordHash = password_hash($password, PASSWORD_DEFAULT);
+    }
+    
+    public function verifyPassword(string $password): bool
+    {
+        return password_verify($password, $this->passwordHash);
+    }
+    
+    public function getPasswordHash(): string
+    {
+        return $this->passwordHash;
+    }
+    
+    public function setPasswordHash(string $hash): void
+    {
+        $this->passwordHash = $hash;
+    }
+    
+    public function setRole(UserRole $role): void
+    {
+        $this->role = $role;
+    }
+    
+    public function getRole(): UserRole
+    {
+        return $this->role;
+    }
+    
+    public function isTeacher(): bool
+    {
+        return $this->role === UserRole::TEACHER;
+    }
+    
+    public function isApprentice(): bool
+    {
+        return $this->role === UserRole::APPRENTICE;
+    }
+    
+    public function setRfidCard(?string $rfidCard): void
+    {
+        $this->rfidCard = $rfidCard;
+    }
+    
+    public function getRfidCard(): ?string
+    {
+        return $this->rfidCard;
+    }
+    
+    public function hasRfidCard(): bool
+    {
+        return $this->rfidCard !== null;
+    }
+    
+    public function setStatus(UserStatus $status): void
+    {
+        $this->status = $status;
+    }
+    
+    public function getStatus(): UserStatus
+    {
+        return $this->status;
+    }
+    
     public function isActive(): bool
     {
-        return $this->getAttribute('status') === 'active';
+        return $this->status === UserStatus::ACTIVE;
     }
-
-    /**
-     * Check if user is locked
-     * 
-     * @return bool True if locked
-     */
-    public function isLocked(): bool
+    
+    public function setYearLevel(?int $yearLevel): void
     {
-        $lockedUntil = $this->getAttribute('locked_until');
-        
-        if (!$lockedUntil) {
-            return false;
-        }
-
-        if ($lockedUntil instanceof \DateTime) {
-            return $lockedUntil > new \DateTime();
-        }
-
-        return strtotime($lockedUntil) > time();
+        $this->yearLevel = $yearLevel;
     }
-
-    /**
-     * Check if email is verified
-     * 
-     * @return bool True if verified
-     */
-    public function isEmailVerified(): bool
+    
+    public function getYearLevel(): ?int
     {
-        return $this->getAttribute('email_verified_at') !== null;
+        return $this->yearLevel;
     }
-
-    /**
-     * Check if user has RFID tag
-     * 
-     * @return bool True if has tag
-     */
-    public function hasRfidTag(): bool
+    
+    public function setSpecialization(?string $specialization): void
     {
-        return !empty($this->getAttribute('rfid_tag'));
+        $this->specialization = $specialization;
     }
-
-    /**
-     * Get avatar URL or initials
-     * 
-     * @return string Avatar URL or initials
-     */
-    public function getAvatar(): string
+    
+    public function getSpecialization(): ?string
     {
-        $avatar = $this->getAttribute('avatar');
-        
-        if ($avatar) {
-            return $avatar;
-        }
-
-        // Return initials as fallback
-        return $this->getInitials();
+        return $this->specialization;
     }
-
-    /**
-     * Get user permissions based on group
-     * 
-     * @return array User permissions
-     */
-    public function getPermissions(): array
+    
+    public function setEnrollmentDate(?DateTime $date): void
     {
-        $groupId = $this->getAttribute('group_id');
-        
-        // Default permissions for different groups
-        $permissions = [
-            1 => ['admin', 'manage_users', 'manage_events', 'view_reports', 'manage_settings'],
-            2 => ['manage_events', 'view_reports', 'check_in_users'],
-            3 => ['view_own_data', 'self_checkin']
-        ];
-
-        return $permissions[$groupId] ?? ['view_own_data'];
+        $this->enrollmentDate = $date;
     }
-
-    /**
-     * Check if user has specific permission
-     * 
-     * @param string $permission Permission to check
-     * @return bool True if has permission
-     */
-    public function hasPermission(string $permission): bool
+    
+    public function getEnrollmentDate(): ?DateTime
     {
-        return in_array($permission, $this->getPermissions());
+        return $this->enrollmentDate;
     }
-
-    /**
-     * Check if user is admin
-     * 
-     * @return bool True if admin
-     */
-    public function isAdmin(): bool
+    
+    public function setCreatedAt(DateTime $createdAt): void
     {
-        return $this->hasPermission('admin');
+        $this->createdAt = $createdAt;
     }
-
-    /**
-     * Get user's department info
-     * 
-     * @return array Department information
-     */
-    public function getDepartmentInfo(): array
+    
+    public function getCreatedAt(): ?DateTime
     {
-        $department = $this->getAttribute('department');
-        
-        if (!$department) {
-            return ['name' => 'Unassigned', 'code' => null];
-        }
-
-        // If department is stored as JSON
-        if (is_array($department)) {
-            return $department;
-        }
-
-        return ['name' => $department, 'code' => null];
+        return $this->createdAt;
     }
-
-    /**
-     * Get user metadata value
-     * 
-     * @param string $key Metadata key
-     * @param mixed $default Default value
-     * @return mixed Metadata value
-     */
-    public function getMetadata(string $key, $default = null)
+    
+    public function setUpdatedAt(DateTime $updatedAt): void
     {
-        $metadata = $this->getAttribute('metadata', []);
-        return $metadata[$key] ?? $default;
+        $this->updatedAt = $updatedAt;
     }
-
-    /**
-     * Set user metadata value
-     * 
-     * @param string $key Metadata key
-     * @param mixed $value Metadata value
-     * @return self
-     */
-    public function setMetadata(string $key, $value): self
+    
+    public function getUpdatedAt(): ?DateTime
     {
-        $metadata = $this->getAttribute('metadata', []);
-        $metadata[$key] = $value;
-        $this->setAttribute('metadata', $metadata);
-        
-        return $this;
+        return $this->updatedAt;
     }
-
-    /**
-     * Get user's contact information
-     * 
-     * @return array Contact information
-     */
-    public function getContactInfo(): array
+    
+    public function findByRfid($rfidTag)
     {
-        return [
-            'email' => $this->getAttribute('email'),
-            'phone' => $this->getAttribute('phone'),
-            'department' => $this->getDepartmentInfo()
-        ];
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE rfid_tag = :rfid_tag AND active = 1");
+        $stmt->execute(['rfid_tag' => $rfidTag]);
+        return $stmt->fetch();
     }
-
-    /**
-     * Get user statistics
-     * 
-     * @return array User statistics
-     */
-    public function getStatistics(): array
+    
+    public function getAll()
     {
-        // This would typically be populated by a service
-        return [
+        $stmt = $this->db->query("SELECT * FROM users ORDER BY name");
+        return $stmt->fetchAll();
+    }
+    
+    public function create($data)
+    {
+        $stmt = $this->db->prepare("INSERT INTO users (name, rfid_tag, active) VALUES (:name, :rfid_tag, :active)");
+        $stmt->execute([
+            'name' => $data['name'],
+            'rfid_tag' => $data['rfid_tag'],
+            'active' => $data['active'] ?? 1
+        ]);
+        return $this->db->lastInsertId();
+    }
+}
+
+enum UserRole: string
+{
+    case APPRENTICE = 'apprentice';
+    case TEACHER = 'teacher';
+}
+
+enum UserStatus: string
+{
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
+    case SUSPENDED = 'suspended';
+}
             'total_checkins' => 0,
             'events_attended' => 0,
             'last_activity' => $this->getAttribute('last_access'),

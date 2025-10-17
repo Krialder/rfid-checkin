@@ -12,7 +12,9 @@
         <!-- Application Logo/Brand -->
         <div class="header-brand">
             <a href="/dashboard" class="brand-link">
-                <img src="/assets/images/logo-small.png" alt="Logo" class="brand-logo">
+                <?php if (file_exists(__DIR__ . '/../../../public/assets/images/logo-small.png')): ?>
+                <img src="<?= $renderer->helper('asset', 'images/logo-small.png') ?>" alt="Logo" class="brand-logo">
+                <?php endif; ?>
                 <span class="brand-text"><?= htmlspecialchars($app_name ?? 'RFID Check-in') ?></span>
             </a>
         </div>
@@ -76,7 +78,7 @@
             </div>
             
             <!-- Quick Actions (Admin only) -->
-            <?php if ($current_user['group_id'] == 1): ?>
+            <?php if (isset($current_user) && isset($current_user['group_id']) && $current_user['group_id'] == 1): ?>
             <div class="dropdown quick-actions-dropdown">
                 <button class="dropdown-toggle quick-actions-toggle" 
                         aria-label="Quick Actions" 
@@ -124,29 +126,30 @@
             </button>
             
             <!-- User Profile Dropdown -->
+            <?php if (isset($current_user)): ?>
             <div class="dropdown user-dropdown">
                 <button class="dropdown-toggle user-toggle" 
                         aria-label="User menu" 
                         data-dropdown="user-menu">
                     <div class="user-avatar">
-                        <?php if (!empty($current_user['avatar'])): ?>
+                        <?php if (!empty($current_user['avatar'] ?? null)): ?>
                             <img src="<?= htmlspecialchars($current_user['avatar']) ?>" 
-                                 alt="<?= htmlspecialchars($current_user['username']) ?>" 
+                                 alt="<?= htmlspecialchars($current_user['username'] ?? 'User') ?>" 
                                  class="avatar-image">
                         <?php else: ?>
                             <div class="avatar-placeholder">
-                                <?= strtoupper(substr($current_user['username'], 0, 1)) ?>
+                                <?= strtoupper(substr($current_user['username'] ?? 'U', 0, 1)) ?>
                             </div>
                         <?php endif; ?>
                     </div>
-                    <span class="user-name"><?= htmlspecialchars($current_user['username']) ?></span>
+                    <span class="user-name"><?= htmlspecialchars($current_user['username'] ?? 'User') ?></span>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </button>
                 
                 <div class="dropdown-menu" id="user-menu">
                     <div class="dropdown-header">
                         <div class="user-info">
-                            <strong><?= htmlspecialchars($current_user['full_name'] ?? $current_user['username']) ?></strong>
+                            <strong><?= htmlspecialchars($current_user['full_name'] ?? $current_user['username'] ?? 'User') ?></strong>
                             <span class="user-role"><?= htmlspecialchars($current_user['group_name'] ?? 'User') ?></span>
                         </div>
                     </div>
@@ -168,7 +171,7 @@
                         <span>My Check-ins</span>
                     </a>
                     
-                    <?php if ($current_user['group_id'] <= 2): ?>
+                    <?php if (isset($current_user['group_id']) && $current_user['group_id'] <= 2): ?>
                         <div class="dropdown-divider"></div>
                         
                         <a href="/admin" class="dropdown-item">
@@ -187,7 +190,7 @@
                     <div class="dropdown-divider"></div>
                     
                     <form action="/auth/logout" method="POST" class="logout-form">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                         <button type="submit" class="dropdown-item logout-item">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Sign Out</span>
@@ -195,6 +198,7 @@
                     </form>
                 </div>
             </div>
+            <?php endif; ?>
             
         </div>
         

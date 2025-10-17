@@ -13,11 +13,12 @@ use Exception;
  * Base API Controller
  * 
  * Provides common functionality for all API controllers including
- * response formatting, error handling, validation, and authentication.
+ * standardized response formatting, error handling, validation,
+ * authentication, and rate limiting.
  * 
  * Features:
  * - Standardized JSON API responses
- * - Error handling
+ * - Comprehensive error handling
  * - Request validation and sanitization
  * - Authentication and authorization
  * - Rate limiting and CORS
@@ -25,6 +26,7 @@ use Exception;
  * 
  * @package RfidCheckin\Controllers
  * @version 1.0.0
+ * @author Senior Development Team
  */
 abstract class BaseApiController
 {

@@ -32,10 +32,13 @@ class CheckinRepository extends BaseRepository
 {
     protected string $table = 'access_logs';
     protected string $primaryKey = 'log_id';
+    
+    private LoggingService $logger;
 
     public function __construct()
     {
         parent::__construct();
+        $this->logger = LoggingService::getInstance();
     }
 
     /**
@@ -623,78 +626,6 @@ class CheckinRepository extends BaseRepository
         }
 
         return sprintf('%02d:00', $peakHour);
-    }
-
-    /**
-     * Get today's check-in count
-     */
-    public function getTodayCount(): int
-    {
-        $sql = "
-            SELECT COUNT(*) as count 
-            FROM {$this->table} 
-            WHERE DATE(checkin_time) = CURDATE()
-        ";
-        $result = $this->db->selectOne($sql);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get check-in count for period
-     */
-    public function getPeriodCount(string $dateFrom, string $dateTo): int
-    {
-        $sql = "
-            SELECT COUNT(*) as count 
-            FROM {$this->table} 
-            WHERE DATE(checkin_time) BETWEEN ? AND ?
-        ";
-        $result = $this->db->selectOne($sql, [$dateFrom, $dateTo]);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get user's today check-in count
-     */
-    public function getUserTodayCount(int $userId): int
-    {
-        $sql = "
-            SELECT COUNT(*) as count 
-            FROM {$this->table} 
-            WHERE user_id = ? AND DATE(checkin_time) = CURDATE()
-        ";
-        $result = $this->db->selectOne($sql, [$userId]);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get user's check-in count for period
-     */
-    public function getUserPeriodCount(int $userId, string $dateFrom, string $dateTo): int
-    {
-        $sql = "
-            SELECT COUNT(*) as count 
-            FROM {$this->table} 
-            WHERE user_id = ? AND DATE(checkin_time) BETWEEN ? AND ?
-        ";
-        $result = $this->db->selectOne($sql, [$userId, $dateFrom, $dateTo]);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get user's last check-in
-     */
-    public function getUserLastCheckin(int $userId): ?array
-    {
-        $sql = "
-            SELECT al.*, e.name as event_name
-            FROM {$this->table} al
-            LEFT JOIN events e ON al.event_id = e.event_id
-            WHERE al.user_id = ?
-            ORDER BY al.checkin_time DESC
-            LIMIT 1
-        ";
-        return $this->db->selectOne($sql, [$userId]);
     }
 
     private function timeAgo(string $datetime): string

@@ -49,10 +49,10 @@ class MiddlewareManager
     {
         // Register middleware aliases for easier configuration
         $this->middlewareAliases = [
-            'auth' => AuthenticationMiddleware::class,
-            'authorize' => AuthorizationMiddleware::class,
-            'csrf' => CsrfMiddleware::class,
-            'rate-limit' => RateLimitingMiddleware::class
+            'auth' => SimpleAuthMiddleware::class,
+            'authorize' => SimpleAuthorizationMiddleware::class,
+            'csrf' => SimpleCsrfMiddleware::class,
+            'rate-limit' => SimpleRateLimitMiddleware::class
         ];
 
         // Define global middleware stack (order matters!)
@@ -437,21 +437,5 @@ class MiddlewareManager
         $profile['middleware_stack'] = $middlewareStack;
         
         return $profile;
-    }
-
-    /**
-     * Convenience method: add middleware (alias for addGlobalMiddleware)
-     */
-    public function add(string $middleware): void
-    {
-        $this->addGlobalMiddleware($middleware);
-    }
-
-    /**
-     * Convenience method: run middleware (alias for process)
-     */
-    public function run(callable $finalHandler): void
-    {
-        $this->process($finalHandler);
     }
 }

@@ -33,20 +33,23 @@ class EventRepository extends BaseRepository
 {
     protected string $table = 'events';
     protected string $primaryKey = 'event_id';
+    
+    private LoggingService $logger;
 
     public function __construct()
     {
         parent::__construct();
+        $this->logger = LoggingService::getInstance();
     }
 
     /**
      * Create new event with validation
      * 
      * @param array $data Event data
-     * @return string Created event ID
+     * @return int Created event ID
      * @throws Exception If creation fails
      */
-    public function create(array $data): string
+    public function create(array $data): int
     {
         $this->validateEventData($data);
 
@@ -103,10 +106,10 @@ class EventRepository extends BaseRepository
      * 
      * @param int $id Event ID
      * @param array $data Updated data
-     * @return int Number of affected rows
+     * @return bool True if successful
      * @throws Exception If update fails
      */
-    public function update($id, array $data): int
+    public function update(int $id, array $data): bool
     {
         $event = $this->find($id);
         if (!$event) {
@@ -154,19 +157,12 @@ class EventRepository extends BaseRepository
     /**
      * Find event by ID with related data
      * 
-     * @param mixed $id Event ID
-     * @param array $columns Columns to select (extended to include stats flag)
+     * @param int $id Event ID
+     * @param bool $includeStats Include check-in statistics
      * @return array|null Event data
      */
-    public function find($id, array $columns = ['*']): ?array
+    public function find(int $id, bool $includeStats = false): ?array
     {
-        // Check if columns array contains includeStats option
-        $includeStats = false;
-        if (isset($columns['includeStats'])) {
-            $includeStats = $columns['includeStats'];
-            unset($columns['includeStats']);
-        }
-        
         $sql = "
             SELECT e.*, 
                    u.firstname, u.lastname, u.email as creator_email,
@@ -650,55 +646,5 @@ class EventRepository extends BaseRepository
         if (!empty($existing)) {
             throw new Exception("An event with this name already exists on the same date");
         }
-    }
-
-    /**
-     * Get total event count
-     */
-    public function getTotalCount(): int
-    {
-        $sql = "SELECT COUNT(*) as count FROM {$this->table}";
-        $result = $this->db->selectOne($sql);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get upcoming event count
-     */
-    public function getUpcomingCount(): int
-    {
-        $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE event_date > NOW() AND status = 'active'";
-        $result = $this->db->selectOne($sql);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get user registered event count
-     */
-    public function getUserRegisteredCount(int $userId): int
-    {
-        $sql = "
-            SELECT COUNT(DISTINCT e.event_id) as count 
-            FROM {$this->table} e
-            JOIN event_registrations er ON e.event_id = er.event_id
-            WHERE er.user_id = ? AND e.status = 'active'
-        ";
-        $result = $this->db->selectOne($sql, [$userId]);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get user upcoming event count
-     */
-    public function getUserUpcomingCount(int $userId): int
-    {
-        $sql = "
-            SELECT COUNT(DISTINCT e.event_id) as count 
-            FROM {$this->table} e
-            JOIN event_registrations er ON e.event_id = er.event_id
-            WHERE er.user_id = ? AND e.event_date > NOW() AND e.status = 'active'
-        ";
-        $result = $this->db->selectOne($sql, [$userId]);
-        return (int) $result['count'];
     }
 }

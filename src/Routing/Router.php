@@ -12,7 +12,21 @@ use Exception;
  * Router
  * 
  * Handles URL routing, request dispatching, and controller instantiation.
- * Provides clean URL support and RESTful routing patterns.
+ * Provides clean URL support and RESTful r    public function dispatch(string $method = null, string $uri = null): void
+    {
+        try {
+            $method = $method ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
+            $uri = $uri ?? $_SERVER['REQUEST_URI'] ?? '/';
+            $path = parse_url($uri, PHP_URL_PATH);
+            
+            // Clean path
+            $path = '/' . trim($path, '/');
+            if ($path === '/') {
+                $path = '/';
+            }
+
+            // Find matching route
+            $route = $this->findRoute($method, $path);.
  * 
  * Features:
  * - RESTful routing patterns
@@ -21,10 +35,11 @@ use Exception;
  * - Middleware integration
  * - Named routes and URL generation
  * - Route caching for performance
- * - Error handling
+ * - Custom error handling
  * 
  * @package RfidCheckin\Routing
  * @version 1.0.0
+ * @author Senior Development Team
  */
 class Router
 {
@@ -48,7 +63,35 @@ class Router
         $this->logger = LoggingService::getInstance();
         $this->middleware = $middleware ?? new MiddlewareManager();
         
-        $this->registerDefaultRoutes();
+        // Don't register default routes - load from routes.php instead
+        // $this->registerDefaultRoutes();
+    }
+
+    /**
+     * Load routes from routes.php file
+     */
+    public function loadRoutes(): void
+    {
+        $router = $this; // Make $router available in routes.php
+        $routesFile = __DIR__ . '/../routes.php';
+        
+        if (!file_exists($routesFile)) {
+            throw new Exception("Routes file not found: {$routesFile}");
+        }
+        
+        // Clear any existing routes
+        $this->routes = [];
+        $this->namedRoutes = [];
+        $this->currentGroupPrefix = '';
+        $this->currentGroupMiddleware = [];
+        
+        // Load the routes
+        require $routesFile;
+        
+        $this->logger->debug('Routes loaded', [
+            'routes_count' => count($this->routes),
+            'named_routes_count' => count($this->namedRoutes)
+        ]);
     }
 
     /**
@@ -161,41 +204,58 @@ class Router
     /**
      * Add GET route
      */
-    public function get(string $path, $handler, string $name = null): void
+    public function get(string $path, string|array|callable $handler, array $options = []): void
     {
-        $this->addRoute('GET', $path, $handler, $name);
+        if (is_array($handler)) {
+            // Handle [Controller::class, 'method'] format
+            $handler = $handler[0] . '@' . $handler[1];
+        }
+        // Callables and strings are stored as-is
+        $this->addRoute('GET', $path, $handler, $options);
     }
 
     /**
      * Add POST route
      */
-    public function post(string $path, $handler, string $name = null): void
+    public function post(string $path, string|array|callable $handler, array $options = []): void
     {
-        $this->addRoute('POST', $path, $handler, $name);
+        if (is_array($handler)) {
+            $handler = $handler[0] . '@' . $handler[1];
+        }
+        $this->addRoute('POST', $path, $handler, $options);
     }
 
     /**
      * Add PUT route
      */
-    public function put(string $path, string $handler, string $name = null): void
+    public function put(string $path, string|array|callable $handler, array $options = []): void
     {
-        $this->addRoute('PUT', $path, $handler, $name);
+        if (is_array($handler)) {
+            $handler = $handler[0] . '@' . $handler[1];
+        }
+        $this->addRoute('PUT', $path, $handler, $options);
     }
 
     /**
      * Add PATCH route
      */
-    public function patch(string $path, string $handler, string $name = null): void
+    public function patch(string $path, string|array|callable $handler, array $options = []): void
     {
-        $this->addRoute('PATCH', $path, $handler, $name);
+        if (is_array($handler)) {
+            $handler = $handler[0] . '@' . $handler[1];
+        }
+        $this->addRoute('PATCH', $path, $handler, $options);
     }
 
     /**
      * Add DELETE route
      */
-    public function delete(string $path, string $handler, string $name = null): void
+    public function delete(string $path, string|array|callable $handler, array $options = []): void
     {
-        $this->addRoute('DELETE', $path, $handler, $name);
+        if (is_array($handler)) {
+            $handler = $handler[0] . '@' . $handler[1];
+        }
+        $this->addRoute('DELETE', $path, $handler, $options);
     }
 
     /**
@@ -212,25 +272,32 @@ class Router
     /**
      * Add route to collection
      */
-    private function addRoute(string $method, string $path, $handler, string $name = null): void
+    private function addRoute(string $method, string $path, string|callable $handler, array $options = []): void
     {
         // Apply current group prefix
         $fullPath = $this->currentGroupPrefix . $path;
+        
+        // Normalize path
+        if ($fullPath === '') {
+            $fullPath = '/';
+        } elseif ($fullPath !== '/' && substr($fullPath, -1) === '/') {
+            $fullPath = rtrim($fullPath, '/');
+        }
         
         $route = [
             'method' => $method,
             'path' => $fullPath,
             'handler' => $handler,
-            'middleware' => $this->currentGroupMiddleware,
-            'name' => $name,
+            'middleware' => array_merge($this->currentGroupMiddleware, $options['middleware'] ?? []),
+            'name' => $options['name'] ?? null,
             'parameters' => $this->extractParameters($fullPath)
         ];
         
         $this->routes[] = $route;
         
         // Store named route
-        if ($name) {
-            $this->namedRoutes[$name] = $route;
+        if ($route['name']) {
+            $this->namedRoutes[$route['name']] = $route;
         }
     }
 
@@ -248,14 +315,12 @@ class Router
         }
         
         if (isset($attributes['middleware'])) {
-            $this->currentGroupMiddleware = array_merge(
-                $previousMiddleware, 
-                (array)$attributes['middleware']
-            );
+            $middleware = is_array($attributes['middleware']) ? $attributes['middleware'] : [$attributes['middleware']];
+            $this->currentGroupMiddleware = array_merge($previousMiddleware, $middleware);
         }
         
         // Execute callback to register routes
-        $callback();
+        $callback($this);
         
         // Restore previous state
         $this->currentGroupPrefix = $previousPrefix;
@@ -265,12 +330,14 @@ class Router
     /**
      * Dispatch request to appropriate handler
      */
-    public function dispatch(): void
+    public function dispatch(string $uri = null, string $method = null): void
     {
         try {
-            $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-            $uri = $_SERVER['REQUEST_URI'] ?? '/';
+            $method = $method ?? $_SERVER['REQUEST_METHOD'] ?? 'GET';
+            $uri = $uri ?? $_SERVER['REQUEST_URI'] ?? '/';
             $path = parse_url($uri, PHP_URL_PATH);
+            
+            error_log("ROUTER: Raw dispatch called - Method: $method, URI: $uri, Path: $path");
             
             // Clean path
             $path = '/' . trim($path, '/');
@@ -278,8 +345,12 @@ class Router
                 $path = '/';
             }
 
+            error_log("ROUTER: Cleaned path: $path");
+
             // Find matching route
             $route = $this->findRoute($method, $path);
+            
+            error_log("ROUTER: Route search result: " . ($route ? 'FOUND' : 'NOT FOUND') . " for $method $path");
             
             if (!$route) {
                 $this->handleNotFound($path);
@@ -289,10 +360,12 @@ class Router
             // Extract route parameters
             $parameters = $this->extractRouteParameters($route, $path);
             
-            // Process through middleware
-            $this->middleware->process(function() use ($route, $parameters) {
-                return $this->executeRoute($route, $parameters);
-            });
+            // Store current route and parameters for middleware/controllers
+            $_SERVER['CURRENT_ROUTE'] = $route;
+            $_SERVER['ROUTE_PARAMETERS'] = $parameters;
+            
+            // Execute middleware pipeline then route
+            $this->executeWithMiddleware($route, $parameters);
 
         } catch (Exception $e) {
             $this->handleException($e);
@@ -300,16 +373,82 @@ class Router
     }
 
     /**
-     * Find matching route
+     * Execute route with middleware pipeline
+     */
+    private function executeWithMiddleware(array $route, array $parameters): void
+    {
+        $middlewares = $route['middleware'] ?? [];
+        $index = 0;
+        
+        $next = function() use (&$next, &$index, $middlewares, $route, $parameters) {
+            if ($index >= count($middlewares)) {
+                // No more middleware, execute the route
+                return $this->executeRoute($route, $parameters);
+            }
+            
+            $middleware = $middlewares[$index++];
+            
+            // Handle different middleware formats
+            if (is_string($middleware)) {
+                // Handle "auth" or "role:admin,manager" format
+                if (strpos($middleware, ':') !== false) {
+                    [$middlewareClass, $params] = explode(':', $middleware, 2);
+                    $middlewareClass = $this->resolveMiddlewareClass($middlewareClass);
+                    $middlewareInstance = new $middlewareClass($params);
+                } else {
+                    $middlewareClass = $this->resolveMiddlewareClass($middleware);
+                    $middlewareInstance = new $middlewareClass();
+                }
+            } else {
+                // Assume it's already an instance or class name
+                $middlewareInstance = is_object($middleware) ? $middleware : new $middleware();
+            }
+            
+            // Execute middleware
+            return $middlewareInstance->handle($_SERVER, $next);
+        };
+        
+        $next();
+    }
+
+    /**
+     * Resolve middleware class name
+     */
+    private function resolveMiddlewareClass(string $middleware): string
+    {
+        // Handle role middleware with parameters (e.g., "role:manager,admin")
+        if (strpos($middleware, 'role:') === 0) {
+            return 'RfidCheckin\\Middleware\\RoleMiddleware';
+        }
+        
+        $middlewareMap = [
+            'auth' => 'RfidCheckin\\Middleware\\AuthenticationMiddleware',
+            'role' => 'RfidCheckin\\Middleware\\RoleMiddleware',
+            'csrf' => 'RfidCheckin\\Middleware\\CsrfMiddleware',
+            'api-auth' => 'RfidCheckin\\Middleware\\ApiAuthMiddleware',
+            'rate-limit' => 'RfidCheckin\\Middleware\\RateLimitMiddleware',
+        ];
+        
+        return $middlewareMap[$middleware] ?? $middleware;
+    }
+
+    /**
+     * Find route matching method and path
      */
     private function findRoute(string $method, string $path): ?array
     {
+        // Debug logging for all routes
+        error_log("ROUTER: Looking for route $method $path");
+        
         foreach ($this->routes as $route) {
+            error_log("ROUTER: Checking route {$route['method']} {$route['path']}");
             if ($route['method'] === $method && $this->matchesPath($route['path'], $path)) {
+                error_log("ROUTER: MATCH FOUND for $method $path -> {$route['handler']}");
                 return $route;
             }
         }
         
+        error_log("ROUTER: NO MATCH found for $method $path");
         return null;
     }
 
@@ -387,14 +526,13 @@ class Router
     {
         $handler = $route['handler'];
         
-        // Handle closure
+        // Handle closure handlers
         if (is_callable($handler)) {
-            // Execute closure directly
-            call_user_func_array($handler, $parameters);
+            call_user_func($handler);
             return;
         }
         
-        // Handle string handler (Controller@method format)
+        // Parse handler (Controller@method format)
         if (strpos($handler, '@') !== false) {
             [$controllerClass, $method] = explode('@', $handler, 2);
         } else {
@@ -427,8 +565,13 @@ class Router
             'parameters' => $parameters
         ]);
         
-        // Execute controller method
-        call_user_func([$controller, $method]);
+        // Execute controller method with parameters
+        $response = call_user_func_array([$controller, $method], array_values($parameters));
+        
+        // Handle response if it's a string (view content)
+        if (is_string($response)) {
+            echo $response;
+        }
     }
 
     /**

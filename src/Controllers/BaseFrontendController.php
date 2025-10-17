@@ -27,6 +27,7 @@ use Exception;
  * 
  * @package RfidCheckin\Controllers
  * @version 1.0.0
+ * @author Senior Development Team
  */
 abstract class BaseFrontendController
 {
@@ -61,7 +62,7 @@ abstract class BaseFrontendController
      */
     private function initializeSession(): void
     {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
@@ -69,7 +70,7 @@ abstract class BaseFrontendController
         $regenerateInterval = $this->config->get('security.session_regenerate_interval', 600);
         $lastRegeneration = $_SESSION['last_regeneration'] ?? 0;
         
-        if (time() - $lastRegeneration > $regenerateInterval && session_status() === PHP_SESSION_ACTIVE) {
+        if (time() - $lastRegeneration > $regenerateInterval) {
             session_regenerate_id(true);
             $_SESSION['last_regeneration'] = time();
         }
@@ -458,24 +459,6 @@ abstract class BaseFrontendController
     protected function isMethod(string $method): bool
     {
         return strtoupper($this->getRequestMethod()) === strtoupper($method);
-    }
-
-    /**
-     * Require specific HTTP method
-     */
-    protected function requireMethod(string $method): void
-    {
-        if (!$this->isMethod($method)) {
-            http_response_code(405);
-            header('Allow: ' . $method);
-            
-            if ($this->isAjaxRequest()) {
-                $this->renderJson(['error' => 'Method not allowed'], 405);
-            } else {
-                echo '<h1>405 - Method Not Allowed</h1>';
-            }
-            exit;
-        }
     }
 
     /**

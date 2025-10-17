@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace RfidCheckin\Models;
 
+use DateTime;
+
 /**
  * Event Model
  * 
@@ -16,6 +18,17 @@ namespace RfidCheckin\Models;
  */
 class Event extends BaseModel
 {
+    private ?int $id = null;
+    private string $name;
+    private EventType $type;
+    private DateTime $startDate;
+    private DateTime $endDate;
+    private ?string $description = null;
+    private bool $affectsAttendance = true;
+    private array $groupIds = [];
+    private ?DateTime $createdAt = null;
+    private ?DateTime $updatedAt = null;
+
     protected array $fillable = [
         'event_id', 'name', 'description', 'event_date', 'end_date',
         'location', 'capacity', 'registration_deadline', 'status',
@@ -514,4 +527,138 @@ class Event extends BaseModel
 
         return $errors;
     }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    
+    public function setId(int $id): void
+    {
+        $this->id = $id;
+    }
+    
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+    }
+    
+    public function getType(): EventType
+    {
+        return $this->type;
+    }
+    
+    public function setType(EventType $type): void
+    {
+        $this->type = $type;
+    }
+    
+    public function getStartDate(): DateTime
+    {
+        return $this->startDate;
+    }
+    
+    public function setStartDate(DateTime $startDate): void
+    {
+        $this->startDate = $startDate;
+    }
+    
+    public function getEndDate(): DateTime
+    {
+        return $this->endDate;
+    }
+    
+    public function setEndDate(DateTime $endDate): void
+    {
+        $this->endDate = $endDate;
+    }
+    
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+    
+    public function setDescription(?string $description): void
+    {
+        $this->description = $description;
+    }
+    
+    public function affectsAttendance(): bool
+    {
+        return $this->affectsAttendance;
+    }
+    
+    public function setAffectsAttendance(bool $affects): void
+    {
+        $this->affectsAttendance = $affects;
+    }
+    
+    public function getGroupIds(): array
+    {
+        return $this->groupIds;
+    }
+    
+    public function setGroupIds(array $groupIds): void
+    {
+        $this->groupIds = array_map('intval', $groupIds);
+    }
+    
+    public function addGroup(int $groupId): void
+    {
+        if (!in_array($groupId, $this->groupIds, true)) {
+            $this->groupIds[] = $groupId;
+        }
+    }
+    
+    public function removeGroup(int $groupId): void
+    {
+        $this->groupIds = array_filter($this->groupIds, fn($id) => $id !== $groupId);
+    }
+    
+    public function isActive(DateTime $date = null): bool
+    {
+        $date = $date ?? new DateTime();
+        return $date >= $this->startDate && $date <= $this->endDate;
+    }
+    
+    public function getDuration(): int
+    {
+        return $this->endDate->diff($this->startDate)->days + 1;
+    }
+    
+    public function setCreatedAt(DateTime $createdAt): void
+    {
+        $this->createdAt = $createdAt;
+    }
+    
+    public function getCreatedAt(): ?DateTime
+    {
+        return $this->createdAt;
+    }
+    
+    public function setUpdatedAt(DateTime $updatedAt): void
+    {
+        $this->updatedAt = $updatedAt;
+    }
+    
+    public function getUpdatedAt(): ?DateTime
+    {
+        return $this->updatedAt;
+    }
+}
+
+enum EventType: string
+{
+    case HOLIDAY = 'holiday';
+    case FIELD_TRIP = 'field_trip';
+    case WORKSHOP = 'workshop';
+    case COMPANY_VISIT = 'company_visit';
+    case EXAM = 'exam';
+    case SCHOOL_EVENT = 'school_event';
+    case OTHER = 'other';
 }

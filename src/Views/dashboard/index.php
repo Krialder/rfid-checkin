@@ -1,14 +1,12 @@
-<?php
-$page_title = 'Dashboard';
-$page_description = 'Overview of system activity and key metrics';
-$breadcrumbs = [];
-$current_page = 'dashboard';
+<?php 
+$renderer->startSection('styles');
+echo '<link rel="stylesheet" href="' . $renderer->helper('asset', 'css/dashboard.css') . '">';
+echo '<link rel="stylesheet" href="' . $renderer->helper('asset', 'css/charts.css') . '">';
+echo '<link rel="stylesheet" href="' . $renderer->helper('asset', 'css/widgets.css') . '">';
+$renderer->endSection();
 
-// Page-specific assets
-$assets = [
-    'css' => ['dashboard.css', 'charts.css', 'widgets.css'],
-    'js' => ['dashboard.js', 'charts.js', 'real-time.js']
-];
+$pageTitle = 'Dashboard';
+$pageDescription = 'Overview of system activity and key metrics';
 ?>
 
 <!-- Dashboard Header -->
@@ -17,7 +15,7 @@ $assets = [
         <div class="welcome-section">
             <h1 class="page-title">
                 <i class="fas fa-tachometer-alt"></i>
-                Welcome back, <?= htmlspecialchars($current_user['first_name'] ?? $current_user['username']) ?>!
+                Welcome back, <?= $renderer->helper('e', $current_user['first_name'] ?? $current_user['username']) ?>!
             </h1>
             <p class="page-subtitle">
                 Here's what's happening with your RFID check-in system today.
@@ -28,7 +26,7 @@ $assets = [
         <div class="header-actions">
             <!-- Quick Actions -->
             <div class="quick-actions">
-                <?php if ($current_user['group_id'] <= 2): ?>
+                <?php if ($renderer->helper('can', 'admin') || $current_user['group_id'] <= 2): ?>
                     <a href="/events/create" class="btn btn-primary btn-sm">
                         <i class="fas fa-plus"></i>
                         <span>New Event</span>
@@ -77,12 +75,12 @@ $assets = [
     </div>
     
     <div class="status-item">
-        <span class="status-value" id="active-users"><?= number_format($stats['active_users'] ?? 0) ?></span>
+        <span class="status-value" id="active-users"><?= $renderer->helper('number', $stats['active_users'] ?? 0) ?></span>
         <span class="status-label">Active Users</span>
     </div>
     
     <div class="status-item">
-        <span class="status-value" id="active-events"><?= number_format($stats['active_events'] ?? 0) ?></span>
+        <span class="status-value" id="active-events"><?= $renderer->helper('number', $stats['active_events'] ?? 0) ?></span>
         <span class="status-label">Active Events</span>
     </div>
 </div>
@@ -111,7 +109,7 @@ $assets = [
                     </div>
                 </div>
                 <div class="stat-body">
-                    <div class="stat-value" id="total-checkins"><?= number_format($stats['total_checkins'] ?? 0) ?></div>
+                    <div class="stat-value" id="total-checkins"><?= $renderer->helper('number', $stats['total_checkins'] ?? 0) ?></div>
                     <div class="stat-label">Total Check-ins</div>
                     <div class="stat-period" id="checkins-period">This week</div>
                 </div>
@@ -132,7 +130,7 @@ $assets = [
                     </div>
                 </div>
                 <div class="stat-body">
-                    <div class="stat-value" id="unique-visitors"><?= number_format($stats['unique_visitors'] ?? 0) ?></div>
+                    <div class="stat-value" id="unique-visitors"><?= $renderer->helper('number', $stats['unique_visitors'] ?? 0) ?></div>
                     <div class="stat-label">Unique Visitors</div>
                     <div class="stat-period" id="visitors-period">This week</div>
                 </div>
@@ -153,7 +151,7 @@ $assets = [
                     </div>
                 </div>
                 <div class="stat-body">
-                    <div class="stat-value" id="total-events"><?= number_format($stats['total_events'] ?? 0) ?></div>
+                    <div class="stat-value" id="total-events"><?= $renderer->helper('number', $stats['total_events'] ?? 0) ?></div>
                     <div class="stat-label">Active Events</div>
                     <div class="stat-period" id="events-period">Currently</div>
                 </div>
@@ -174,12 +172,12 @@ $assets = [
                     </div>
                 </div>
                 <div class="stat-body">
-                    <div class="stat-value" id="rfid-tags"><?= number_format($stats['rfid_tags'] ?? 0) ?></div>
+                    <div class="stat-value" id="rfid-tags"><?= $renderer->helper('number', $stats['rfid_tags'] ?? 0) ?></div>
                     <div class="stat-label">RFID Tags</div>
                     <div class="stat-period" id="rfid-period">Assigned</div>
                 </div>
                 <div class="stat-footer">
-                    <?php if ($current_user['group_id'] <= 2): ?>
+                    <?php if ($renderer->helper('can', 'admin') || $current_user['group_id'] <= 2): ?>
                         <a href="/admin/rfid" class="stat-link">Manage RFID tags</a>
                     <?php else: ?>
                         <a href="/profile" class="stat-link">View my profile</a>
@@ -298,7 +296,7 @@ $assets = [
         </div>
     </div>
     
-    <?php if ($current_user['group_id'] <= 2): ?>
+    <?php if ($renderer->helper('can', 'admin') || $current_user['group_id'] <= 2): ?>
     <!-- Admin Section -->
     <div class="grid-section admin-section">
         <h2 class="section-title">
@@ -346,19 +344,19 @@ $assets = [
                         <a href="/admin/users" class="admin-action">
                             <i class="fas fa-users"></i>
                             <span>Manage Users</span>
-                            <div class="action-count"><?= number_format($stats['pending_users'] ?? 0) ?> pending</div>
+                            <div class="action-count"><?= $renderer->helper('number', $stats['pending_users'] ?? 0) ?> pending</div>
                         </a>
                         
                         <a href="/admin/events" class="admin-action">
                             <i class="fas fa-calendar"></i>
                             <span>Manage Events</span>
-                            <div class="action-count"><?= number_format($stats['upcoming_events'] ?? 0) ?> upcoming</div>
+                            <div class="action-count"><?= $renderer->helper('number', $stats['upcoming_events'] ?? 0) ?> upcoming</div>
                         </a>
                         
                         <a href="/admin/rfid" class="admin-action">
                             <i class="fas fa-id-card"></i>
                             <span>RFID Management</span>
-                            <div class="action-count"><?= number_format($stats['unassigned_rfid'] ?? 0) ?> unassigned</div>
+                            <div class="action-count"><?= $renderer->helper('number', $stats['unassigned_rfid'] ?? 0) ?> unassigned</div>
                         </a>
                         
                         <a href="/admin/reports" class="admin-action">
@@ -405,8 +403,15 @@ $assets = [
     <span>Live updates active</span>
 </div>
 
-<!-- Dashboard JavaScript -->
+<?php $renderer->startSection('scripts'); ?>
+<script src="<?= $renderer->helper('asset', 'js/dashboard.js') ?>"></script>
+<script src="<?= $renderer->helper('asset', 'js/charts.js') ?>"></script>
+<script src="<?= $renderer->helper('asset', 'js/real-time.js') ?>"></script>
 <script>
+// Set CSRF token for API calls
+window.App = window.App || {};
+window.App.csrfToken = <?= json_encode($renderer->helper('csrfToken')) ?>;
+
 document.addEventListener('DOMContentLoaded', function() {
     const dashboard = new DashboardManager();
     dashboard.init();
@@ -1024,3 +1029,4 @@ class DashboardManager {
     }
 }
 </script>
+<?php $renderer->endSection(); ?>

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace RfidCheckin\Repositories;
 
-use Exception;
+use RfidCheckin\Models\User;
+use RfidCheckin\Database\ConnectionManager;
+use DateTime;
+use PDO;
 
 /**
  * User Repository
@@ -15,210 +18,210 @@ use Exception;
  * @package RfidCheckin\Repositories
  * @author Kralder
  */
-class UserRepository extends BaseRepository
+class UserRepository
 {
-    protected string $tableName = 'users';
-    protected string $primaryKey = 'user_id';
-    protected array $fillable = [
-        'username', 'email', 'password', 'first_name', 'last_name',
-        'rfid_tag', 'role', 'is_active', 'phone', 'department',
-        'position', 'bio', 'avatar', 'preferences'
-    ];
-    protected array $hidden = ['password'];
-
-    /**
-     * Find user by email or username
-     * 
-     * @param string $identifier Email or username
-     * @return array|null User data or null if not found
-     * @throws Exception If query fails
-     */
-    public function findByEmailOrUsername(string $identifier): ?array
+    private PDO $db;
+    
+    public function __construct(DatabaseConnection $connection)
     {
-        $cacheKey = "user_by_identifier_" . md5($identifier);
-        $cached = $this->cacheGet($cacheKey);
-        
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $query = "
-            SELECT user_id, username, email, password, first_name, last_name, 
-                   rfid_tag, role, is_active, last_login, failed_login_attempts, 
-                   locked_until, phone, department, position, bio, avatar, 
-                   preferences, created_at, updated_at
-            FROM {$this->tableName} 
-            WHERE (email = ? OR username = ?) AND is_active = 1
-        ";
-        
-        $result = $this->db->selectOne($query, [$identifier, $identifier]);
-        
-        if ($result) {
-            // Don't cache password data
-            $result = $this->filterHiddenFields($result);
-            $this->cacheSet($cacheKey, $result);
-        }
-        
-        return $result;
+        $this->db = $connection->getConnection();
     }
-
+    
+    /**
+     * Find user by ID
+     * 
+     * @param int $id User ID
+     * @return User|null User object or null if not found
+     */
+    public function find(int $id): ?User
+    {
+        $stmt = $this->db->prepare('
+            SELECT * FROM users WHERE id = ?
+        ');
+        $stmt->execute([$id]);
+        
+        $data = $stmt->fetch();
+        return $data ? $this->hydrate($data) : null;
+    }
+    
     /**
      * Find user by email
      * 
-     * @param string $email Email address
-     * @return array|null User data or null if not found
-     * @throws Exception If query fails
+     * @param string $email User email
+     * @return User|null User object or null if not found
      */
-    public function findByEmail(string $email): ?array
+    public function findByEmail(string $email): ?User
     {
-        return $this->findByEmailOrUsername($email);
+        $stmt = $this->db->prepare('
+            SELECT * FROM users WHERE email = ?
+        ');
+        $stmt->execute([$email]);
+        
+        $data = $stmt->fetch();
+        return $data ? $this->hydrate($data) : null;
     }
-
+    
     /**
-     * Find user by RFID tag
+     * Find user by RFID card
      * 
-     * @param string $rfidTag RFID tag value
-     * @return array|null User data or null if not found
-     * @throws Exception If query fails
+     * @param string $rfidCard RFID card value
+     * @return User|null User object or null if not found
      */
-    public function findByRfidTag(string $rfidTag): ?array
+    public function findByRfidCard(string $rfidCard): ?User
     {
-        $cacheKey = "user_by_rfid_" . md5($rfidTag);
-        $cached = $this->cacheGet($cacheKey);
+        $stmt = $this->db->prepare('
+            SELECT * FROM users WHERE rfid_card = ?
+        ');
+        $stmt->execute([$rfidCard]);
         
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $query = "
-            SELECT user_id, username, email, first_name, last_name, 
-                   rfid_tag, role, is_active, department, position,
-                   created_at, updated_at
-            FROM {$this->tableName} 
-            WHERE rfid_tag = ? AND is_active = 1
-        ";
-        
-        $result = $this->db->selectOne($query, [$rfidTag]);
-        
-        if ($result) {
-            $this->cacheSet($cacheKey, $result);
-        }
-        
-        return $result;
+        $data = $stmt->fetch();
+        return $data ? $this->hydrate($data) : null;
     }
-
+    
     /**
-     * Create new user with password hashing
+     * Find all users with optional filters
      * 
-     * @param array $data User data
-     * @return string User ID
-     * @throws Exception If creation fails
+     * @param array $filters Filters for the query
+     * @return User[] Array of user objects
      */
-    public function createUser(array $data): string
+    public function findAll(array $filters = []): array
     {
-        $this->validateRequired($data, ['username', 'email', 'password']);
+        $query = 'SELECT * FROM users WHERE 1=1';
+        $params = [];
         
-        // Hash password
-        if (isset($data['password'])) {
-            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        if (isset($filters['role'])) {
+            $query .= ' AND role = ?';
+            $params[] = $filters['role'];
         }
         
-        // Set defaults
-        $data['role'] = $data['role'] ?? 'user';
-        $data['is_active'] = $data['is_active'] ?? true;
-        $data['failed_login_attempts'] = 0;
-        
-        // Ensure unique username and email
-        if ($this->findByEmailOrUsername($data['email'])) {
-            throw new Exception('Email address already exists');
+        if (isset($filters['status'])) {
+            $query .= ' AND status = ?';
+            $params[] = $filters['status'];
         }
         
-        if ($this->findByEmailOrUsername($data['username'])) {
-            throw new Exception('Username already exists');
+        if (isset($filters['year_level'])) {
+            $query .= ' AND year_level = ?';
+            $params[] = $filters['year_level'];
         }
         
-        $userId = $this->create($data);
+        if (isset($filters['specialization'])) {
+            $query .= ' AND specialization = ?';
+            $params[] = $filters['specialization'];
+        }
         
-        // Clear cache
-        $this->cacheClear();
+        $query .= ' ORDER BY last_name, first_name';
         
-        $this->logger->info('User created', [
-            'user_id' => $userId,
-            'username' => $data['username'],
-            'email' => $data['email']
-        ]);
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
         
-        return $userId;
+        $results = [];
+        while ($data = $stmt->fetch()) {
+            $results[] = $this->hydrate($data);
+        }
+        
+        return $results;
     }
-
+    
     /**
-     * Update user password
+     * Save user (insert or update)
+     * 
+     * @param User $user User object
+     * @return User Saved user object
+     */
+    public function save(User $user): User
+    {
+        if ($user->getId() === null) {
+            return $this->insert($user);
+        }
+        
+        return $this->update($user);
+    }
+    
+    /**
+     * Delete user by ID
+     * 
+     * @param int $id User ID
+     * @return bool True if successful
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->prepare('DELETE FROM users WHERE id = ?');
+        return $stmt->execute([$id]);
+    }
+    
+    /**
+     * Assign user to groups
      * 
      * @param int $userId User ID
-     * @param string $newPassword New password
-     * @return bool True if successful
-     * @throws Exception If update fails
+     * @param array $groupIds Array of group IDs
      */
-    public function updatePassword(int $userId, string $newPassword): bool
+    public function assignToGroups(int $userId, array $groupIds): void
     {
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        // First remove existing assignments
+        $stmt = $this->db->prepare('DELETE FROM user_groups WHERE user_id = ?');
+        $stmt->execute([$userId]);
         
-        $affectedRows = $this->update($userId, [
-            'password' => $hashedPassword,
-            'password_reset_token' => null,
-            'password_reset_expires' => null
-        ]);
-        
-        if ($affectedRows > 0) {
-            $this->cacheClear();
-            $this->logger->info('Password updated', ['user_id' => $userId]);
-            return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Verify user password
-     * 
-     * @param string $identifier Email or username
-     * @param string $password Plain text password
-     * @return array|null User data if valid, null if invalid
-     * @throws Exception If query fails
-     */
-    public function verifyPassword(string $identifier, string $password): ?array
-    {
-        $query = "
-            SELECT user_id, username, email, password, first_name, last_name, 
-                   role, is_active, failed_login_attempts, locked_until
-            FROM {$this->tableName} 
-            WHERE (email = ? OR username = ?) AND is_active = 1
-        ";
-        
-        $user = $this->db->selectOne($query, [$identifier, $identifier]);
-        
-        if (!$user) {
-            return null;
-        }
-        
-        // Check if account is locked
-        if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
-            throw new Exception('Account is temporarily locked due to too many failed login attempts');
-        }
-        
-        if (password_verify($password, $user['password'])) {
-            // Reset failed login attempts on successful login
-            $this->resetFailedLoginAttempts($user['user_id']);
+        // Insert new assignments
+        if (!empty($groupIds)) {
+            $stmt = $this->db->prepare('
+                INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)
+            ');
             
-            // Remove password from returned data
-            unset($user['password']);
-            return $user;
+            foreach ($groupIds as $groupId) {
+                $stmt->execute([$userId, $groupId]);
+            }
+        }
+    }
+    
+    /**
+     * Get group IDs for a user
+     * 
+     * @param int $userId User ID
+     * @return array Array of group IDs
+     */
+    public function getGroupIds(int $userId): array
+    {
+        $stmt = $this->db->prepare('
+            SELECT group_id FROM user_groups WHERE user_id = ?
+        ');
+        $stmt->execute([$userId]);
+        
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+    
+    /**
+     * Hydrate user object from database row
+     * 
+     * @param array $data Database row data
+     * @return User User object
+     */
+    private function hydrate(array $data): User
+    {
+        $user = new User();
+        $user->setId((int) $data['id']);
+        $user->setFirstName($data['first_name']);
+        $user->setLastName($data['last_name']);
+        $user->setEmail($data['email']);
+        $user->setPasswordHash($data['password_hash']);
+        $user->setRole(UserRole::from($data['role']));
+        $user->setRfidCard($data['rfid_card']);
+        $user->setStatus(UserStatus::from($data['status']));
+        $user->setYearLevel($data['year_level'] ? (int) $data['year_level'] : null);
+        $user->setSpecialization($data['specialization']);
+        
+        if ($data['enrollment_date']) {
+            $user->setEnrollmentDate(new DateTime($data['enrollment_date']));
         }
         
-        // Increment failed login attempts
-        $this->incrementFailedLoginAttempts($user['user_id']);
+        if ($data['created_at']) {
+            $user->setCreatedAt(new DateTime($data['created_at']));
+        }
         
-        return null;
+        if ($data['updated_at']) {
+            $user->setUpdatedAt(new DateTime($data['updated_at']));
+        }
+        
+        return $user;
     }
 
     /**
@@ -400,76 +403,6 @@ class UserRepository extends BaseRepository
         $stats['recent_registrations'] = $recentResult['count'];
         
         return $stats;
-    }
-
-    /**
-     * Get total user count
-     */
-    public function getTotalCount(): int
-    {
-        return $this->count();
-    }
-
-    /**
-     * Get active user count
-     */
-    public function getActiveCount(): int
-    {
-        return $this->count(['is_active' => 1]);
-    }
-
-    /**
-     * Get pending user count
-     */
-    public function getPendingCount(): int
-    {
-        return $this->count(['is_active' => 0]);
-    }
-
-    /**
-     * Get RFID tag count
-     */
-    public function getRfidTagCount(): int
-    {
-        $query = "SELECT COUNT(*) as count FROM {$this->tableName} WHERE rfid_tag IS NOT NULL AND rfid_tag != ''";
-        $result = $this->db->selectOne($query);
-        return (int) $result['count'];
-    }
-
-    /**
-     * Get recent users
-     */
-    public function getRecentUsers(int $limit = 20): array
-    {
-        $query = "
-            SELECT user_id, username, first_name, last_name, email, role, created_at
-            FROM {$this->tableName} 
-            WHERE is_active = 1 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        ";
-        
-        return $this->db->select($query, [$limit]);
-    }
-
-    /**
-     * Update last login with IP
-     */
-    public function updateLastLogin(int $userId, string $ipAddress = ''): bool
-    {
-        $data = ['last_login' => date('Y-m-d H:i:s')];
-        if ($ipAddress) {
-            $data['last_login_ip'] = $ipAddress;
-        }
-        
-        $affectedRows = $this->update($userId, $data);
-        
-        if ($affectedRows > 0) {
-            $this->cacheClear();
-            return true;
-        }
-        
-        return false;
     }
 
     /**

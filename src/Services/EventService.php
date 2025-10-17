@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types=1);
-
 namespace RfidCheckin\Services;
 
 use RfidCheckin\Repositories\EventRepository;
-use RfidCheckin\Services\LoggingService;
-use App\Core\ValidationService;
+use RfidCheckin\Services\PerformanceCacheService;
+use RfidCheckin\Core\LoggingService;
+use RfidCheckin\Core\ValidationService;
 use Exception;
 
 /**

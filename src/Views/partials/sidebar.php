@@ -1,11 +1,31 @@
-<!-- Application Sidebar -->
-<aside class="sidebar" role="navigation" aria-label="Main navigation">
+<!-- Application S        <!-- User Profile Section -->
+        <?php if (isset($current_user)): ?>
+        <div class="sidebar-user">
+            <div class="user-avatar">
+                <?php if (!empty($current_user['avatar'] ?? null)): ?>
+                    <img src="<?= htmlspecialchars($current_user['avatar']) ?>" 
+                         alt="<?= htmlspecialchars($current_user['username'] ?? 'User') ?>" 
+                         class="avatar-image">
+                <?php else: ?>
+                    <div class="avatar-placeholder">
+                        <?= strtoupper(substr($current_user['username'] ?? 'U', 0, 1)) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="user-details">
+                <div class="user-name"><?= htmlspecialchars($current_user['full_name'] ?? $current_user['username'] ?? 'User') ?></div>
+                <div class="user-role"><?= htmlspecialchars($current_user['group_name'] ?? 'User') ?></div>
+            </div>
+        </div>
+        <?php endif; ?> class="sidebar" role="navigation" aria-label="Main navigation">
     <div class="sidebar-container">
         
         <!-- Sidebar Header -->
         <div class="sidebar-header">
             <div class="sidebar-brand">
-                <img src="/assets/images/logo-small.png" alt="Logo" class="sidebar-logo">
+                <?php if (file_exists(__DIR__ . '/../../../public/assets/images/logo-small.png')): ?>
+                <img src="<?= $renderer->helper('asset', 'images/logo-small.png') ?>" alt="Logo" class="sidebar-logo">
+                <?php endif; ?>
                 <span class="sidebar-title"><?= htmlspecialchars($app_name ?? 'RFID System') ?></span>
             </div>
             
@@ -73,7 +93,7 @@
                 </li>
                 
                 <!-- Analytics (if user has access) -->
-                <?php if ($current_user['group_id'] <= 2): ?>
+                <?php if (isset($current_user['group_id']) && $current_user['group_id'] <= 2): ?>
                 <li class="nav-item">
                     <a href="/analytics" class="nav-link <?= $current_page === 'analytics' ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-chart-bar"></i>
@@ -83,7 +103,7 @@
                 <?php endif; ?>
                 
                 <!-- Admin Section (Admin only) -->
-                <?php if ($current_user['group_id'] == 1): ?>
+                <?php if (isset($current_user['group_id']) && $current_user['group_id'] == 1): ?>
                 <li class="nav-section">
                     <div class="nav-section-title">Administration</div>
                 </li>
